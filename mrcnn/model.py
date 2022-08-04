@@ -287,6 +287,8 @@ class ProposalLayer(KE.Layer):
         pre_nms_limit = tf.minimum(self.config.PRE_NMS_LIMIT, tf.shape(anchors)[1])
         ix = tf.nn.top_k(scores, pre_nms_limit, sorted=True,
                          name="top_anchors").indices
+        mask = tf.greater(tf.shape(anchors)[1], ix, name="bool_mask")
+        ix = tf.stack([tf.boolean_mask(ix, mask)])
         scores = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
                                    self.config.IMAGES_PER_GPU)
         deltas = utils.batch_slice([deltas, ix], lambda x, y: tf.gather(x, y),
@@ -717,9 +719,9 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     # Filter out low confidence boxes
     if config.DETECTION_MIN_CONFIDENCE:
         conf_keep = tf.where(class_scores >= config.DETECTION_MIN_CONFIDENCE)[:, 0]
-        keep = tf.sets.set_intersection(tf.expand_dims(keep, 0),
+        keep = tf.sets.intersection(tf.expand_dims(keep, 0),
                                         tf.expand_dims(conf_keep, 0))
-        keep = tf.sparse_tensor_to_dense(keep)[0]
+        keep = tf.sparse.to_dense(keep)[0]
 
     # Apply per-class NMS
     # 1. Prepare variables
