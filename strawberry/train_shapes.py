@@ -12,7 +12,6 @@
     数据集的代码包含在下面。它实时生成图像，因此不需要下载任何数据。
     它可以生成任何大小的图像，所以我们选择小尺寸的图像来更快地训练。
 """
-# In[1]:
 
 
 import os
@@ -60,8 +59,6 @@ if not os.path.exists(COCO_MODEL_PATH):
 
 # ## Configurations
 
-# In[2]:
-
 
 class StrawberryConfig(Config):
     """
@@ -80,7 +77,8 @@ class StrawberryConfig(Config):
     NUM_CLASSES = 2 + 1
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
-    RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
+    MAX_GT_INSTANCES = 100
+    RPN_ANCHOR_SCALES = (8*7, 16*7, 32*7, 64*7, 128*7)  # anchor side in pixels
     TRAIN_ROIS_PER_IMAGE = 32
     POST_NMS_ROIS_INFERENCE = 250
     POST_NMS_ROIS_TRAINING = 500
@@ -159,6 +157,7 @@ class StrawberryDataset(utils.Dataset):
             filestr = imglist[i].split(".")[0]
             mask_path = mask_floder + "/" + filestr + ".png"
             yaml_path = dataset_root_path + "/labelme_json/" + filestr + ".yaml"
+            cv_img = cv2.imread(img_floder + "/" + filestr + ".jpg")
             # if not os.path.exists(mask_path) or not os.path.exists(yaml_path):
             #     continue
             # cv_img = cv2.imread(img_floder + "/" + filestr + ".png")
@@ -185,12 +184,11 @@ class StrawberryDataset(utils.Dataset):
         """
         global iter_num
         info = self.image_info[image_id]
-        count = 1  # 检测目标共有1类
+        count = 2  # 检测目标共有1类
         img = Image.open(info['mask_path'])  # 根据mask路径打开图片的mask文件
         num_obj = self.get_obj_index(img)  # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
         mask = np.zeros([info['height'], info['width'], num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
         mask = self.draw_mask(num_obj, mask, img, image_id)  # 调用draw_mask画出mask
-
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):
             mask[:, :, i] = mask[:, :, i] * occlusion
@@ -270,18 +268,13 @@ class StrawberryDataset(utils.Dataset):
     #     return bg_color, shapes
 
 
-# In[5]:
-
-
 # 基础设置
 dataset_root_path = "../train_data/"
 img_floder = dataset_root_path + "pic"
 mask_floder = dataset_root_path + "mask"
-yaml_floder = dataset_root_path + "labelme_json"
+# yaml_floder = dataset_root_path + "labelme_json"
 imglist = os.listdir(img_floder)
 count = len(imglist)
-width = 640
-heigt = 400
 
 # Training dataset
 dataset_train = StrawberryDataset()
@@ -290,10 +283,8 @@ dataset_train.prepare()
 
 # Validation dataset
 dataset_val = StrawberryDataset()
-dataset_val.load_strawberrys(count, 400, 640, img_floder, mask_floder, imglist, dataset_root_path)
+dataset_val.load_strawberrys(3, 400, 640, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
-
-# In[6]:
 
 
 # 加载和显示随机样本
@@ -305,14 +296,8 @@ dataset_val.prepare()
 
 # ## Create Model
 
-# In[17]:
-
-
 # Create model in training mode
-model = modellib.MaskRCNN(mode="training", config=config,
-                          model_dir=MODEL_DIR)
-
-# In[18]:
+model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 
 
 # Which weights to start with?
@@ -321,15 +306,13 @@ init_with = "coco"  # imagenet, coco, or last
 if init_with == "imagenet":
     model.load_weights(model.get_imagenet_weights(), by_name=True)
 elif init_with == "coco":
-    # Load weights trained on MS COCO, but skip layers that
-    # are different due to the different number of classes
-    # See README for instructions to download the COCO weights
+    # 加载在MS COCO上训练的权重，但由于类的数量不同而跳过不同的层
+    # 请参阅README来获取关于下载COCO重量的说明
     model.load_weights(COCO_MODEL_PATH, by_name=True,
-                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
-                                "mrcnn_bbox", "mrcnn_mask"])
+                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
 elif init_with == "last":
-    # Load the last model you trained and continue training
-    model.load_weights(model.find_last(), by_name=True)
+    # 加载您训练的最后一个模型并继续训练
+    model.load_weights(model.find_last()[1], by_name=True)
 
 # ## Training
 # 
@@ -339,28 +322,16 @@ elif init_with == "last":
 #
 # 2。调整所有层。对于这个简单的示例，没有必要这样做，但我们将它包括进来以展示整个过程。
 # 简单地通过' layers= ' all '来训练所有层。
-# In[19]:
-
 
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-# model.train(dataset_train, dataset_val,
-#             learning_rate=config.LEARNING_RATE,
-#             epochs=1,
-#             layers='heads')
-
-# In[20]:
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
 
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val,
-            learning_rate=config.LEARNING_RATE / 10,
-            epochs=2,
-            layers="all")
-
-# In[21]:
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
 
 
 # Save weights
@@ -371,8 +342,6 @@ model.keras_model.save_weights(model_path)
 
 
 # ## 检测
-
-# In[22]:
 
 
 class InferenceConfig(StrawberryConfig):
@@ -389,15 +358,13 @@ model = modellib.MaskRCNN(mode="inference",
                           model_dir=MODEL_DIR)
 
 # Get path to saved weights
-# Either set a specific path or find last trained weights
+# 要么设置一个特定的路径，要么找到最后训练的权重
 # model_path = os.path.join(ROOT_DIR, ".h5 file name here")
 model_path = model.find_last()
 
 # Load trained weights
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
-
-# In[34]:
 
 
 # Test on a random image
@@ -414,8 +381,6 @@ log("gt_mask", gt_mask)
 visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
                             dataset_train.class_names, figsize=(8, 8))
 
-# In[35]:
-
 
 results = model.detect([original_image], verbose=1)
 
@@ -425,11 +390,9 @@ visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'
 
 # ## Evaluation
 
-# In[25]:
-
 
 # Compute VOC-Style mAP @ IoU=0.5
-# Running on 10 images. Increase for better accuracy.
+# 运行10个图像。提高精度
 image_ids = np.random.choice(dataset_val.image_ids, 10)
 APs = []
 for image_id in image_ids:
@@ -447,7 +410,4 @@ for image_id in image_ids:
 
 print("mAP: ", np.mean(APs))
 
-# In[ ]:
 
-
-# In[ ]:
