@@ -2482,15 +2482,15 @@ class MaskRCNN():
         return boxes, class_ids, scores, full_masks
 
     def detect(self, images, verbose=0):
-        """Runs the detection pipeline.
+        """运行检测管道.
 
-        images: List of images, potentially of different sizes.
+        images: 可能有不同大小的图像列表。
 
-        Returns a list of dicts, one dict per image. The dict contains:
-        rois: [N, (y1, x1, y2, x2)] detection bounding boxes
-        class_ids: [N] int class IDs
-        scores: [N] float probability scores for the class IDs
-        masks: [H, W, N] instance binary masks
+        返回一个字典列表，每个图像一个字典。关键字包含:
+        rois: [N, (y1, x1, y2, x2)] 检测边界框
+        class_ids: [N] int类id
+        scores: [N] 类id的浮点概率分数
+        masks: [H, W, N] 实例二进制masks
         """
         assert self.mode == "inference", "Create model in inference mode."
         assert len(
