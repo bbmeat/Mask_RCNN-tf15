@@ -129,8 +129,8 @@ class StrawberryDataset(utils.Dataset):
             del labels[0]
         return labels
 
-        # 重新写drcv_img = cv2.imread(dataset_root_path + "labelme_json/" +
-        # filestr + "_json/img.png")aw_mask, 根据给出的image_id画出对应的mask
+        # 重新写draw_mask,cv_img = cv2.imread(dataset_root_path + "labelme_json/" +
+        # filestr + "_json/img.png"), 根据给出的image_id画出对应的mask
         # 判断image中某点的像素值x，如果x=index+1，说明该像素是第index个目标的mask（像素值=0是背景）
         # 然后将mask[j,i,index]赋值=1，也就是在第index个图上画该像素对应的点
         # 返回值mask是在每个通道index上，已经画好了mask的一系列图片（三维数组）
@@ -145,28 +145,22 @@ class StrawberryDataset(utils.Dataset):
                         mask[j, i, index] = 1
             return mask
 
-    def load_strawberrys(self, count, height, width, img_floder, mask_floder, imglist, dataset_root_path):
+    def load_strawberrys(self, count, img_floder, mask_floder, imglist, dataset_root_path):
         """生成所请求的合成图像数量。
             count:生成图像的数量。
             height, width:生成图像的大小。
         """
         # Add classes
-        self.add_class("strawberrys", 1, "strawberry")
-        self.add_class("strawberrys", 2, "greenstrawberry")
+        self.add_class("strawberrys", 1, "greenstrawberry")
+        self.add_class("strawberrys", 2, "strawberry")
         for i in range(count):
             filestr = imglist[i].split(".")[0]
             mask_path = mask_floder + "/" + filestr + ".png"
             yaml_path = dataset_root_path + "/labelme_json/" + filestr + ".yaml"
-            cv_img = cv2.imread(img_floder + "/" + filestr + ".jpg")
-            # if not os.path.exists(mask_path) or not os.path.exists(yaml_path):
-            #     continue
-            # cv_img = cv2.imread(img_floder + "/" + filestr + ".png")
-            # if cv_img is None:
-            #     cv_img = cv2.imread(img_floder + "/" + filestr + ".jpg")
-            self.add_image("strawberrys",
-                           image_id=i,
+            cv_img = cv2.imread(img_floder + "/" + filestr + ".png")
+            self.add_image("strawberrys", image_id=i,
                            path=img_floder + "/" + imglist[i],
-                           width=width, height=height,
+                           width=cv_img.shape[1], height=cv_img.shape[0],
                            mask_path=mask_path, yaml_path=yaml_path)
 
     # def image_reference(self, image_id):
@@ -183,11 +177,15 @@ class StrawberryDataset(utils.Dataset):
         """为给定图像ID的形状生成实例掩码。
         """
         global iter_num
+        print("image_id:", image_id)
         info = self.image_info[image_id]
         count = 2  # 检测目标共有1类
         img = Image.open(info['mask_path'])  # 根据mask路径打开图片的mask文件
-        num_obj = self.get_obj_index(img)  # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
-        mask = np.zeros([info['height'], info['width'], num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
+        num_obj = self.get_obj_index(img)
+        # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
+
+        mask = np.zeros([info['height'], info['width'],
+                        num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
         mask = self.draw_mask(num_obj, mask, img, image_id)  # 调用draw_mask画出mask
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):
@@ -199,19 +197,20 @@ class StrawberryDataset(utils.Dataset):
         labels = self.from_yaml_get_class(image_id)
         labels_form = []
         for i in range(len(labels)):
-            if labels[i].find("strawberry") != -1:
-                # print "strawberry"
-                labels_form.append("strawberry")
-            elif labels[i].find("greenstrawberry") != -1:
-                # print "greenstrawberry"
+            if labels[i].find("greenstrawberry") != -1:
+                print ("greenstrawberry")
                 labels_form.append("greenstrawberry")
+            elif labels[i].find("strawberry") != -1:
+                print ("strawberry")
+                labels_form.append("strawberry")
         # 生成class_id，其实际上使用class_names中映射过来的
         # 从class_names中找到hook对应的index，然后添加到class_ids中
         class_ids = np.array([self.class_names.index(s) for s in labels_form])
+        print(class_ids)
         return mask, class_ids.astype(np.int32)
 
     # def draw_shape(self, image, shape, dims, color):
-    #     """Draws a shape from the given specs."""
+    #     """根据给定的规格绘制形状。"""
     #     # Get the center x, y and the size s
     #     x, y, s = dims
     #     if shape == 'square':
@@ -278,12 +277,12 @@ count = len(imglist)
 
 # Training dataset
 dataset_train = StrawberryDataset()
-dataset_train.load_strawberrys(count, 400, 640, img_floder, mask_floder, imglist, dataset_root_path)
+dataset_train.load_strawberrys(count, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_train.prepare()
 
 # Validation dataset
 dataset_val = StrawberryDataset()
-dataset_val.load_strawberrys(3, 400, 640, img_floder, mask_floder, imglist, dataset_root_path)
+dataset_val.load_strawberrys(3, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
 
 
@@ -331,7 +330,7 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epoc
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=6, layers="all")
 
 
 # Save weights
