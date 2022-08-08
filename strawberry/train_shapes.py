@@ -13,7 +13,6 @@
     它可以生成任何大小的图像，所以我们选择小尺寸的图像来更快地训练。
 """
 
-
 import os
 import sys
 import random
@@ -78,7 +77,7 @@ class StrawberryConfig(Config):
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
     MAX_GT_INSTANCES = 100
-    RPN_ANCHOR_SCALES = (8*7, 16*7, 32*7, 64*7, 128*7)  # anchor side in pixels
+    RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
     TRAIN_ROIS_PER_IMAGE = 32
     POST_NMS_ROIS_INFERENCE = 250
     POST_NMS_ROIS_TRAINING = 500
@@ -113,6 +112,7 @@ class StrawberryDataset(utils.Dataset):
     # 得到该图像中有多少实例（物体）
     def get_obj_index(self, image):
         n = np.max(image)
+        print(n)
         return n
 
         # 解析labelme中得到的yaml文件，从而得到每个mask对应的实例标签
@@ -145,7 +145,7 @@ class StrawberryDataset(utils.Dataset):
                         mask[j, i, index] = 1
             return mask
 
-    def load_strawberrys(self, count, img_floder, mask_floder, imglist, dataset_root_path):
+    def load_shapes(self, count, img_floder, mask_floder, imglist, dataset_root_path):
         """生成所请求的合成图像数量。
             count:生成图像的数量。
             height, width:生成图像的大小。
@@ -156,21 +156,12 @@ class StrawberryDataset(utils.Dataset):
         for i in range(count):
             filestr = imglist[i].split(".")[0]
             mask_path = mask_floder + "/" + filestr + ".png"
-            yaml_path = dataset_root_path + "/labelme_json/" + filestr + ".yaml"
-            cv_img = cv2.imread(img_floder + "/" + filestr + ".png")
+            yaml_path = dataset_root_path + "labelme_json/" + filestr + "_json/info.yaml"
+            cv_img = cv2.imread(dataset_root_path + "labelme_json/" + filestr + "_json/img.png")
             self.add_image("strawberrys", image_id=i,
                            path=img_floder + "/" + imglist[i],
                            width=cv_img.shape[1], height=cv_img.shape[0],
                            mask_path=mask_path, yaml_path=yaml_path)
-
-    # def image_reference(self, image_id):
-    #     """Return the shapes data of the image."""
-    #     info = self.image_info[image_id]
-    #     if info["source"] == "strawberrys":
-    #         return info["path"]
-    #     else:
-    #         super(self.__class__).image_reference(self, image_id)
-
     # 重写load_mask
 
     def load_mask(self, image_id):
@@ -179,13 +170,13 @@ class StrawberryDataset(utils.Dataset):
         global iter_num
         print("image_id:", image_id)
         info = self.image_info[image_id]
-        count = 2  # 检测目标共有1类
+        count = 1  # 检测目标共有1类
         img = Image.open(info['mask_path'])  # 根据mask路径打开图片的mask文件
         num_obj = self.get_obj_index(img)
         # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
 
         mask = np.zeros([info['height'], info['width'],
-                        num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
+                         num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
         mask = self.draw_mask(num_obj, mask, img, image_id)  # 调用draw_mask画出mask
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):
@@ -198,73 +189,16 @@ class StrawberryDataset(utils.Dataset):
         labels_form = []
         for i in range(len(labels)):
             if labels[i].find("greenstrawberry") != -1:
-                print ("greenstrawberry")
+                print("greenstrawberry")
                 labels_form.append("greenstrawberry")
             elif labels[i].find("strawberry") != -1:
-                print ("strawberry")
+                print("strawberry")
                 labels_form.append("strawberry")
         # 生成class_id，其实际上使用class_names中映射过来的
         # 从class_names中找到hook对应的index，然后添加到class_ids中
         class_ids = np.array([self.class_names.index(s) for s in labels_form])
-        print(class_ids)
+        print("class_id:", class_ids)
         return mask, class_ids.astype(np.int32)
-
-    # def draw_shape(self, image, shape, dims, color):
-    #     """根据给定的规格绘制形状。"""
-    #     # Get the center x, y and the size s
-    #     x, y, s = dims
-    #     if shape == 'square':
-    #         cv2.rectangle(image, (x - s, y - s), (x + s, y + s), color, -1)
-    #     elif shape == "circle":
-    #         cv2.circle(image, (x, y), s, color, -1)
-    #     elif shape == "triangle":
-    #         points = np.array([[(x, y - s),
-    #                             (x - s / math.sin(math.radians(60)), y + s),
-    #                             (x + s / math.sin(math.radians(60)), y + s),
-    #                             ]], dtype=np.int32)
-    #         cv2.fillPoly(image, points, color)
-    #     return image
-
-    # def random_shape(self, height, width):
-    #     """生成位于给定高度和宽度边界内的随机形状的规范。
-    #     返回一个三值元组:
-    #         *形状名称(方形，圆形，…)
-    #         *形状颜色:3个值的元组，RGB。
-    #         *形状尺寸:一个值的元组，定义形状大小和位置。不同的形状类型。
-    #     """
-    #     # Shape
-    #     shape = random.choice(["square", "circle", "triangle"])
-    #     # Color
-    #     color = tuple([random.randint(0, 255) for _ in range(3)])
-    #     # Center x, y
-    #     buffer = 20
-    #     y = random.randint(buffer, height - buffer - 1)
-    #     x = random.randint(buffer, width - buffer - 1)
-    #     # Size
-    #     s = random.randint(buffer, height // 4)
-    #     return shape, color, (x, y, s)
-
-    # def random_image(self, height, width):
-    #     """
-    #     创建具有多个形状的图像的随机规范。
-    #         返回图像的背景颜色和可用于绘制图像的形状规范列表。
-    #     """
-    #     # Pick random background color
-    #     bg_color = np.array([random.randint(0, 255) for _ in range(3)])
-    #     # 生成一些随机的形状并记录它们
-    #     # bounding boxes
-    #     shapes = []
-    #     boxes = []
-    #     N = random.randint(1, 4)
-    #     for _ in range(N):
-    #         shape, color, dims = self.random_shape(height, width)
-    #         shapes.append((shape, color, dims))
-    #         x, y, s = dims
-    #         boxes.append([y - s, x - s, y + s, x + s])
-    #     # 使用0.3阈值的非最大抑制来避免形状相互覆盖
-    #     keep_ixs = utils.non_max_suppression(np.array(boxes), np.arange(N), 0.3)
-    #     shapes = [s for i, s in enumerate(shapes) if i in keep_ixs]
-    #     return bg_color, shapes
 
 
 # 基础设置
@@ -277,41 +211,26 @@ count = len(imglist)
 
 # Training dataset
 dataset_train = StrawberryDataset()
-dataset_train.load_strawberrys(count, img_floder, mask_floder, imglist, dataset_root_path)
+dataset_train.load_shapes(count, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_train.prepare()
 
 # Validation dataset
 dataset_val = StrawberryDataset()
-dataset_val.load_strawberrys(3, img_floder, mask_floder, imglist, dataset_root_path)
+dataset_val.load_shapes(3, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
 
-
 # 加载和显示随机样本
-# image_ids = np.random.choice(dataset_train.image_ids, 4)
-# for image_id in image_ids:
-#     image = dataset_train.load_image(image_id)
-#     mask, class_ids = dataset_train.load_mask(image_id)
-#     visualize.display_top_masks(image, mask, class_ids, dataset_train.class_names)
+image_ids = np.random.choice(dataset_train.image_ids, 2)
+for image_id in image_ids:
+    image = dataset_train.load_image(image_id)
+    mask, class_ids = dataset_train.load_mask(image_id)
+    print('样本', dataset_train.class_names)
+    visualize.display_top_masks(image, mask, class_ids, dataset_train.class_names)
 
 # ## Create Model
 
 # Create model in training mode
 model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
-
-
-# Which weights to start with?
-init_with = "coco"  # imagenet, coco, or last
-
-if init_with == "imagenet":
-    model.load_weights(model.get_imagenet_weights(), by_name=True)
-elif init_with == "coco":
-    # 加载在MS COCO上训练的权重，但由于类的数量不同而跳过不同的层
-    # 请参阅README来获取关于下载COCO重量的说明
-    model.load_weights(COCO_MODEL_PATH, by_name=True,
-                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-elif init_with == "last":
-    # 加载您训练的最后一个模型并继续训练
-    model.load_weights(model.find_last()[1], by_name=True)
 
 # ## Training
 # 
@@ -325,13 +244,11 @@ elif init_with == "last":
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
-
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=1, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=6, layers="all")
-
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=2, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
@@ -339,7 +256,7 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10,
 model_path = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
 model.keras_model.save_weights(model_path)
 
-
+"""
 # ## 检测
 
 
@@ -365,7 +282,6 @@ model_path = model.find_last()
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
 
-
 # Test on a random image
 image_id = random.choice(dataset_val.image_ids)
 original_image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(dataset_val, inference_config,
@@ -376,18 +292,16 @@ log("image_meta", image_meta)
 log("gt_class_id", gt_class_id)
 log("gt_bbox", gt_bbox)
 log("gt_mask", gt_mask)
+class_names = ['greenstrawberry', 'strawberry']
+visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, class_names, figsize=(8, 8))
 
-visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
-                            dataset_train.class_names, figsize=(8, 8))
+# results = model.detect([original_image], verbose=1)
+#
+# r = results[0]
+# visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
+#                             class_names, r['scores'], ax=get_ax())
 
-
-results = model.detect([original_image], verbose=1)
-
-r = results[0]
-visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
-                            dataset_val.class_names, r['scores'], ax=get_ax())
-
-# ## Evaluation
+# ## 评估
 
 
 # Compute VOC-Style mAP @ IoU=0.5
@@ -409,4 +323,4 @@ for image_id in image_ids:
 
 print("mAP: ", np.mean(APs))
 
-
+"""
