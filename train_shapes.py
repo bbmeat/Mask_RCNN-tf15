@@ -33,7 +33,7 @@ warnings.filterwarnings(action='ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # 项目的根目录
-ROOT_DIR = os.path.abspath("../")
+ROOT_DIR = os.getcwd()
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # 找到本地目录
@@ -156,8 +156,8 @@ class StrawberryDataset(utils.Dataset):
         for i in range(count):
             filestr = imglist[i].split(".")[0]
             mask_path = mask_floder + "/" + filestr + ".png"
-            yaml_path = dataset_root_path + "labelme_json/" + filestr + "_json/info.yaml"
-            cv_img = cv2.imread(dataset_root_path + "labelme_json/" + filestr + "_json/img.png")
+            yaml_path = dataset_root_path + "labelme_json/" + filestr + "_json/" + filestr + ".yaml"
+            cv_img = cv2.imread(dataset_root_path + "labelme_json/" + filestr + "_json/" + filestr + ".png")
             self.add_image("strawberrys", image_id=i,
                            path=img_floder + "/" + imglist[i],
                            width=cv_img.shape[1], height=cv_img.shape[0],
@@ -202,7 +202,7 @@ class StrawberryDataset(utils.Dataset):
 
 
 # 基础设置
-dataset_root_path = "../train_data/"
+dataset_root_path = "train_data/"
 img_floder = dataset_root_path + "pic"
 mask_floder = dataset_root_path + "mask"
 # yaml_floder = dataset_root_path + "labelme_json"
@@ -232,6 +232,22 @@ for image_id in image_ids:
 # Create model in training mode
 model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 
+
+# Which weights to start with?
+init_with = "coco"  # imagenet, coco, or last
+
+if init_with == "imagenet":
+    model.load_weights(model.get_imagenet_weights(), by_name=True)
+elif init_with == "coco":
+    # Load weights trained on MS COCO, but skip layers that
+    # are different due to the different number of classes
+    # See README for instructions to download the COCO weights
+    model.load_weights(COCO_MODEL_PATH, by_name=True,
+                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
+                                "mrcnn_bbox", "mrcnn_mask"])
+elif init_with == "last":
+    # Load the last model you trained and continue training
+    model.load_weights(model.find_last()[1], by_name=True)
 # ## Training
 # 
 # Train in two stages:
@@ -253,8 +269,8 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10,
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
 # 取消注释以手动保存
-model_path = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
-model.keras_model.save_weights(model_path)
+# model_path = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
+# model.keras_model.save_weights(model_path)
 
 """
 # ## 检测
