@@ -65,20 +65,17 @@ class StrawberryConfig(Config):
     从基本的Config类派生，并重写特定于玩具形状数据集的值。
     """
     # Give the configuration a recognizable name
-    NAME = "strawberrys"
-
-    # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
-    # GPU because the images are small. Batch size is 8 (GPUs * images/GPU).
+    NAME = "shapes"
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 2 + 1
+    NUM_CLASSES = 1 + 2
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
     MAX_GT_INSTANCES = 100
     RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
-    TRAIN_ROIS_PER_IMAGE = 32
+    TRAIN_ROIS_PER_IMAGE = 100
     POST_NMS_ROIS_INFERENCE = 250
     POST_NMS_ROIS_TRAINING = 500
     STEPS_PER_EPOCH = 30
@@ -112,7 +109,7 @@ class StrawberryDataset(utils.Dataset):
     # 得到该图像中有多少实例（物体）
     def get_obj_index(self, image):
         n = np.max(image)
-        print(n)
+        # print("个数", n)
         return n
 
         # 解析labelme中得到的yaml文件，从而得到每个mask对应的实例标签
@@ -151,17 +148,19 @@ class StrawberryDataset(utils.Dataset):
             height, width:生成图像的大小。
         """
         # Add classes
-        self.add_class("strawberrys", 1, "greenstrawberry")
-        self.add_class("strawberrys", 2, "strawberry")
+        self.add_class("shapes", 1, "greenstrawberry")
+        self.add_class("shapes", 2, "strawberry")
+
         for i in range(count):
             filestr = imglist[i].split(".")[0]
             mask_path = mask_floder + "/" + filestr + ".png"
             yaml_path = dataset_root_path + "labelme_json/" + filestr + "_json/" + filestr + ".yaml"
             cv_img = cv2.imread(dataset_root_path + "labelme_json/" + filestr + "_json/" + filestr + ".png")
-            self.add_image("strawberrys", image_id=i,
+            self.add_image("shapes", image_id=i,
                            path=img_floder + "/" + imglist[i],
                            width=cv_img.shape[1], height=cv_img.shape[0],
                            mask_path=mask_path, yaml_path=yaml_path)
+
     # 重写load_mask
 
     def load_mask(self, image_id):
@@ -170,13 +169,12 @@ class StrawberryDataset(utils.Dataset):
         global iter_num
         print("image_id:", image_id)
         info = self.image_info[image_id]
-        count = 1  # 检测目标共有1类
+        count = 2  # 检测目标共有1类
         img = Image.open(info['mask_path'])  # 根据mask路径打开图片的mask文件
         num_obj = self.get_obj_index(img)
         # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
 
-        mask = np.zeros([info['height'], info['width'],
-                         num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
+        mask = np.zeros([info['height'], info['width'], num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
         mask = self.draw_mask(num_obj, mask, img, image_id)  # 调用draw_mask画出mask
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):
@@ -189,16 +187,28 @@ class StrawberryDataset(utils.Dataset):
         labels_form = []
         for i in range(len(labels)):
             if labels[i].find("greenstrawberry") != -1:
-                print("greenstrawberry")
+                # print("greenstrawberry")
                 labels_form.append("greenstrawberry")
             elif labels[i].find("strawberry") != -1:
-                print("strawberry")
+                # print("strawberry")
                 labels_form.append("strawberry")
         # 生成class_id，其实际上使用class_names中映射过来的
         # 从class_names中找到hook对应的index，然后添加到class_ids中
         class_ids = np.array([self.class_names.index(s) for s in labels_form])
-        print("class_id:", class_ids)
+        # print("class_id:", class_ids)
         return mask, class_ids.astype(np.int32)
+
+
+def get_ax(rows=1, cols=1, size=8):
+    """Return a Matplotlib Axes array to be used in
+    all visualizations in the notebook. Provide a
+    central point to control graph sizes.
+
+    Change the default size attribute to control the size
+    of rendered images
+    """
+    _, ax = plt.subplots(rows, cols, figsize=(size * cols, size * rows))
+    return ax
 
 
 # 基础设置
@@ -220,11 +230,10 @@ dataset_val.load_shapes(3, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
 
 # 加载和显示随机样本
-image_ids = np.random.choice(dataset_train.image_ids, 2)
+image_ids = np.random.choice(dataset_train.image_ids, 5)
 for image_id in image_ids:
     image = dataset_train.load_image(image_id)
     mask, class_ids = dataset_train.load_mask(image_id)
-    print('样本', dataset_train.class_names)
     visualize.display_top_masks(image, mask, class_ids, dataset_train.class_names)
 
 # ## Create Model
@@ -232,22 +241,6 @@ for image_id in image_ids:
 # Create model in training mode
 model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 
-
-# Which weights to start with?
-init_with = "coco"  # imagenet, coco, or last
-
-if init_with == "imagenet":
-    model.load_weights(model.get_imagenet_weights(), by_name=True)
-elif init_with == "coco":
-    # Load weights trained on MS COCO, but skip layers that
-    # are different due to the different number of classes
-    # See README for instructions to download the COCO weights
-    model.load_weights(COCO_MODEL_PATH, by_name=True,
-                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
-                                "mrcnn_bbox", "mrcnn_mask"])
-elif init_with == "last":
-    # Load the last model you trained and continue training
-    model.load_weights(model.find_last()[1], by_name=True)
 # ## Training
 # 
 # Train in two stages:
@@ -272,7 +265,7 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10,
 # model_path = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
 # model.keras_model.save_weights(model_path)
 
-"""
+
 # ## 检测
 
 
@@ -308,7 +301,7 @@ log("image_meta", image_meta)
 log("gt_class_id", gt_class_id)
 log("gt_bbox", gt_bbox)
 log("gt_mask", gt_mask)
-class_names = ['greenstrawberry', 'strawberry']
+class_names = ['BG', 'greenstrawberry', 'strawberry']
 visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, class_names, figsize=(8, 8))
 
 # results = model.detect([original_image], verbose=1)
@@ -338,5 +331,5 @@ for image_id in image_ids:
     APs.append(AP)
 
 print("mAP: ", np.mean(APs))
-
+"""
 """

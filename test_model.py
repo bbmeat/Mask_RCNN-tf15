@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import os
 import sys
 import random
@@ -23,22 +22,18 @@ from mrcnn import utils
 import mrcnn.model as modellib
 from mrcnn import visualize
 
-# Import COCO config
-sys.path.append(os.path.join(ROOT_DIR, "samples/coco/"))  # To find local version
-from samples.coco import coco
-
 # Directory to save logs and trained model
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
 # Local path to trained weights file
-COCO_MODEL_PATH = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
+COCO_MODEL_PATH = os.path.join(MODEL_DIR, "mask_rcnn_strawberrys_0002.h5")
 # Download COCO trained weights from Releases if needed
 if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
     print("cuiwei***********************")
 
 # Directory of images to run detection on
-IMAGE_DIR = os.path.join(ROOT_DIR, "images")
+IMAGE_DIR = os.path.join(ROOT_DIR, "/train_data/val/")
 
 
 class ShapesConfig(Config):
@@ -47,7 +42,7 @@ class ShapesConfig(Config):
     to the toy shapes dataset.
     """
     # Give the configuration a recognizable name
-    NAME = "shapes"
+    NAME = "strawberrys"
 
     # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
     # GPU because the images are small. Batch size is 8 (GPUs * images/GPU).
@@ -55,25 +50,25 @@ class ShapesConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 1  # background + 3 shapes
+    NUM_CLASSES = 1 + 2  # background + 3 shapes
 
     # Use small images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
-    IMAGE_MIN_DIM = 320
-    IMAGE_MAX_DIM = 384
+    IMAGE_MIN_DIM = 256
+    IMAGE_MAX_DIM = 768
 
     # Use smaller anchors because our image and objects are small
-    RPN_ANCHOR_SCALES = (8 * 6, 16 * 6, 32 * 6, 64 * 6, 128 * 6)  # anchor side in pixels
+    RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
 
     # Reduce training ROIs per image because the images are small and have
     # few objects. Aim to allow ROI sampling to pick 33% positive ROIs.
     TRAIN_ROIS_PER_IMAGE = 100
 
     # Use a small epoch since the data is simple
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 30
 
     # use small validation steps since the epoch is small
-    VALIDATION_STEPS = 50
+    VALIDATION_STEPS = 5
 
 
 # import train_tongue
@@ -89,8 +84,6 @@ config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
 
-# Create model object in inference mode.
-model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
 
 # Load weights trained on MS-COCO
 model.load_weights(COCO_MODEL_PATH, by_name=True)
@@ -98,10 +91,9 @@ model.load_weights(COCO_MODEL_PATH, by_name=True)
 # COCO Class names
 # Index of the class in the list is its ID. For example, to get ID of
 # the teddy bear class, use: class_names.index('teddy bear')
-class_names = ['BG', 'tank']
-# Load a random image from the images folder
-file_names = next(os.walk(IMAGE_DIR))[2]
-image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
+class_names = ['BG', 'greenstrawberry', 'strawberry']
+
+image = skimage.io.imread("./train_data/val/rgb_3.png")
 
 a = datetime.now()
 # Run detection
