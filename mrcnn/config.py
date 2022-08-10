@@ -99,7 +99,7 @@ class Config(object):
     # If enabled, resizes instance masks to a smaller size to reduce
     # memory load. Recommended when using high-resolution images.
     USE_MINI_MASK = True
-    MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
+    MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-cv2_mask
 
     # Input image resizing
     # Generally, use the "square" resizing mode for training and inferencing
@@ -133,22 +133,22 @@ class Config(object):
     # Image mean (RGB)
     MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
 
-    # Number of ROIs per image to feed to classifier/mask heads
+    # Number of ROIs per image to feed to classifier/cv2_mask heads
     # The Mask RCNN paper uses 512 but often the RPN doesn't generate
     # enough positive proposals to fill this and keep a positive:negative
     # ratio of 1:3. You can increase the number of proposals by adjusting
     # the RPN NMS threshold.
     TRAIN_ROIS_PER_IMAGE = 100
 
-    # Percent of positive ROIs used to train classifier/mask heads
+    # Percent of positive ROIs used to train classifier/cv2_mask heads
     ROI_POSITIVE_RATIO = 0.33
 
     # Pooled ROIs
     POOL_SIZE = 7
     MASK_POOL_SIZE = 14
 
-    # Shape of output mask
-    # To change this you also need to change the neural network mask branch
+    # Shape of output cv2_mask
+    # To change this you also need to change the neural network cv2_mask branch
     MASK_SHAPE = [28, 28]
 
     # Maximum number of ground truth instances to use in one image

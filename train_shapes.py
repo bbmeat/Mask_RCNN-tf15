@@ -55,6 +55,8 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
 
+iter_num = 0
+
 
 # ## Configurations
 
@@ -106,42 +108,6 @@ def get_ax(rows=1, cols=1, size=8):
 # In[4]:
 class StrawberryDataset(utils.Dataset):
 
-    # 得到该图像中有多少实例（物体）
-    def get_obj_index(self, image):
-        n = np.max(image)
-        # print("个数", n)
-        return n
-
-        # 解析labelme中得到的yaml文件，从而得到每个mask对应的实例标签
-        # 根据给出的image_id，读取对应的yaml.info文件，其读取内容是字典
-        # 取键label_names的值（形式为一个list），去掉labels[0]（也就是背景类）
-        # 返回值labels就是一个所有类别名称的list,此处返回值是labels=['hook']
-
-    def from_yaml_get_class(self, image_id):
-        info = self.image_info[image_id]
-        with open(info['yaml_path']) as f:
-            temp = yaml.safe_load(f.read())
-            labels = temp['label_names']
-            # labels = list(labels.keys())
-            del labels[0]
-        return labels
-
-        # 重新写draw_mask,cv_img = cv2.imread(dataset_root_path + "labelme_json/" +
-        # filestr + "_json/img.png"), 根据给出的image_id画出对应的mask
-        # 判断image中某点的像素值x，如果x=index+1，说明该像素是第index个目标的mask（像素值=0是背景）
-        # 然后将mask[j,i,index]赋值=1，也就是在第index个图上画该像素对应的点
-        # 返回值mask是在每个通道index上，已经画好了mask的一系列图片（三维数组）
-
-    def draw_mask(self, num_obj, mask, image, image_id):
-        info = self.image_info[image_id]
-        for index in range(num_obj):
-            for i in range(info['width']):
-                for j in range(info['height']):
-                    at_pixel = image.getpixel((i, j))
-                    if at_pixel == index + 1:
-                        mask[j, i, index] = 1
-            return mask
-
     def load_shapes(self, count, img_floder, mask_floder, imglist, dataset_root_path):
         """生成所请求的合成图像数量。
             count:生成图像的数量。
@@ -159,7 +125,41 @@ class StrawberryDataset(utils.Dataset):
             self.add_image("shapes", image_id=i,
                            path=img_floder + "/" + imglist[i],
                            width=cv_img.shape[1], height=cv_img.shape[0],
-                           mask_path=mask_path, yaml_path=yaml_path)
+                           mask_path=mask_path, yaml_path=yaml_path,
+                           )
+            # ,shapes=shapes)
+
+    # 得到该图像中有多少实例（物体）
+    def get_obj_index(self, image):
+        n = np.max(image)
+        # print("个数", n)
+        return n
+
+    def from_yaml_get_class(self, image_id):
+        info = self.image_info[image_id]
+        with open(info['yaml_path']) as f:
+            temp = yaml.safe_load(f.read())
+            labels = temp['label_names']
+            print("temp", labels)
+            # labels = list(labels.keys())
+            del labels[0]
+        return labels
+
+    def draw_mask(self, num_obj, mask, image, image_id):
+        # print("draw_mask-->",image_id)
+        # print("self.image_info",self.image_info)
+        info = self.image_info[image_id]
+        # print("info-->",info)
+        # print("info[width]----->",info['width'],"-info[height]--->",info['height'])
+        for index in range(num_obj):
+            for i in range(info['width']):
+                for j in range(info['height']):
+                    # print("image_id-->",image_id,"-i--->",i,"-j--->",j)
+                    # print("info[width]----->",info['width'],"-info[height]--->",info['height'])
+                    at_pixel = image.getpixel((i, j))
+                    if at_pixel == index + 1:
+                        mask[j, i, index] = 1
+        return mask
 
     # 重写load_mask
 
@@ -169,22 +169,26 @@ class StrawberryDataset(utils.Dataset):
         global iter_num
         print("image_id:", image_id)
         info = self.image_info[image_id]
-        count = 2  # 检测目标共有1类
+        count = 1
+        # count = 1  # 检测目标共有1类
         img = Image.open(info['mask_path'])  # 根据mask路径打开图片的mask文件
         num_obj = self.get_obj_index(img)
+        print("num", num_obj)
         # 由于mask的规则：第i个目标的mask像素值=i，所以通过像素值最大值，可以知道有多少个目标
 
-        mask = np.zeros([info['height'], info['width'], num_obj], dtype=np.uint8)  # 根据h,w和num创建三维数组（多张mask）
+        mask = np.zeros([info['height'], info['width'], num_obj], dtype=np.uint8)
+        # 根据h,w和num创建三维数组（多张mask）
         mask = self.draw_mask(num_obj, mask, img, image_id)  # 调用draw_mask画出mask
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):
             mask[:, :, i] = mask[:, :, i] * occlusion
-            occlusion = np.logical_and(occlusion, np.logical_not(mask[:, :, i]))
 
+            occlusion = np.logical_and(occlusion, np.logical_not(mask[:, :, i]))
         # 获取obj_class的列表，此处labels=['hook']
         labels = []
         labels = self.from_yaml_get_class(image_id)
         labels_form = []
+
         for i in range(len(labels)):
             if labels[i].find("greenstrawberry") != -1:
                 # print("greenstrawberry")
@@ -214,7 +218,7 @@ def get_ax(rows=1, cols=1, size=8):
 # 基础设置
 dataset_root_path = "train_data/"
 img_floder = dataset_root_path + "pic"
-mask_floder = dataset_root_path + "mask"
+mask_floder = dataset_root_path + "cv2_mask"
 # yaml_floder = dataset_root_path + "labelme_json"
 imglist = os.listdir(img_floder)
 count = len(imglist)
@@ -235,12 +239,13 @@ for image_id in image_ids:
     image = dataset_train.load_image(image_id)
     mask, class_ids = dataset_train.load_mask(image_id)
     visualize.display_top_masks(image, mask, class_ids, dataset_train.class_names)
+    # print("cv2_mask", cv2_mask)
+    print("class", dataset_train.class_names)
 
 # ## Create Model
 
 # Create model in training mode
 model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
-
 # ## Training
 # 
 # Train in two stages:
@@ -253,11 +258,12 @@ model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=1, layers='heads')
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=2, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
+
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
@@ -304,11 +310,11 @@ log("gt_mask", gt_mask)
 class_names = ['BG', 'greenstrawberry', 'strawberry']
 visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, class_names, figsize=(8, 8))
 
-# results = model.detect([original_image], verbose=1)
-#
-# r = results[0]
-# visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
-#                             class_names, r['scores'], ax=get_ax())
+results = model.detect([original_image], verbose=1)
+
+r = results[0]
+visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
+                            class_names, r['scores'], ax=get_ax())
 
 # ## 评估
 

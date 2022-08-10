@@ -71,7 +71,7 @@ def random_colors(N, bright=True):
 
 
 def apply_mask(image, mask, color, alpha=0.5):
-    """Apply the given mask to the image.
+    """Apply the given cv2_mask to the image.
     """
     for c in range(3):
         image[:, :, c] = np.where(mask == 1,
@@ -281,7 +281,7 @@ def draw_box(image, box, color):
     return image
 
 
-def display_top_masks(image, mask, class_ids, class_names, limit=4):
+def display_top_masks(image, mask, class_ids, class_names, limit=3):
     """Display the given image and the top few class masks."""
     to_display = []
     titles = []
@@ -293,6 +293,8 @@ def display_top_masks(image, mask, class_ids, class_names, limit=4):
                  for i in unique_class_ids]
     top_ids = [v[0] for v in sorted(zip(unique_class_ids, mask_area),
                                     key=lambda r: r[1], reverse=True) if v[1] > 0]
+    print("top", top_ids)
+    print("un", unique_class_ids)
     # Generate images and titles
     for i in range(limit):
         class_id = top_ids[i] if i < len(top_ids) else -1

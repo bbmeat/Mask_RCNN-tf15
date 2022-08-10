@@ -32,7 +32,7 @@ except Exception:
     install_reqs = []
 
 setup(
-    name='mask-rcnn',
+    name='cv2_mask-rcnn',
     version='2.1',
     url='https://github.com/matterport/Mask_RCNN',
     author='Matterport',
@@ -64,5 +64,5 @@ It's based on Feature Pyramid Network (FPN) and a ResNet101 backbone.""",
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    keywords="image instance segmentation object detection mask rcnn r-cnn tensorflow keras",
+    keywords="image instance segmentation object detection cv2_mask rcnn r-cnn tensorflow keras",
 )

@@ -149,9 +149,9 @@ class NucleusConfig(Config):
     # If enabled, resizes instance masks to a smaller size to reduce
     # memory load. Recommended when using high-resolution images.
     USE_MINI_MASK = True
-    MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
+    MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-cv2_mask
 
-    # Number of ROIs per image to feed to classifier/mask heads
+    # Number of ROIs per image to feed to classifier/cv2_mask heads
     # The Mask RCNN paper uses 512 but often the RPN doesn't generate
     # enough positive proposals to fill this and keep a positive:negative
     # ratio of 1:3. You can increase the number of proposals by adjusting
@@ -221,21 +221,21 @@ class NucleusDataset(utils.Dataset):
         """Generate instance masks for an image.
        Returns:
         masks: A bool array of shape [height, width, instance count] with
-            one mask per instance.
+            one cv2_mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.
         """
         info = self.image_info[image_id]
-        # Get mask directory from image path
+        # Get cv2_mask directory from image path
         mask_dir = os.path.join(os.path.dirname(os.path.dirname(info['path'])), "masks")
 
-        # Read mask files from .png image
+        # Read cv2_mask files from .png image
         mask = []
         for f in next(os.walk(mask_dir))[2]:
             if f.endswith(".png"):
                 m = skimage.io.imread(os.path.join(mask_dir, f)).astype(np.bool)
                 mask.append(m)
         mask = np.stack(mask, axis=-1)
-        # Return mask, and array of class IDs of each instance. Since we have
+        # Return cv2_mask, and array of class IDs of each instance. Since we have
         # one class ID, we return an array of ones
         return mask, np.ones([mask.shape[-1]], dtype=np.int32)
 
@@ -300,7 +300,7 @@ def train(model, dataset_dir, subset):
 ############################################################
 
 def rle_encode(mask):
-    """Encodes a mask in Run Length Encoding (RLE).
+    """Encodes a cv2_mask in Run Length Encoding (RLE).
     Returns a string of space-separated values.
     """
     assert mask.ndim == 2, "Mask must be of shape [Height, Width]"
@@ -317,7 +317,7 @@ def rle_encode(mask):
 
 def rle_decode(rle, shape):
     """Decodes an RLE encoded list of space separated
-    numbers and returns a binary mask."""
+    numbers and returns a binary cv2_mask."""
     rle = list(map(int, rle.split()))
     rle = np.array(rle, dtype=np.int32).reshape([-1, 2])
     rle[:, 1] += rle[:, 0]
@@ -335,11 +335,11 @@ def rle_decode(rle, shape):
 def mask_to_rle(image_id, mask, scores):
     "Encodes instance masks to submission format."
     assert mask.ndim == 3, "Mask must be [H, W, count]"
-    # If mask is empty, return line with image ID only
+    # If cv2_mask is empty, return line with image ID only
     if mask.shape[-1] == 0:
         return "{},".format(image_id)
-    # Remove mask overlaps
-    # Multiply each instance mask by its score order
+    # Remove cv2_mask overlaps
+    # Multiply each instance cv2_mask by its score order
     # then take the maximum across the last dimension
     order = np.argsort(scores)[::-1] + 1  # 1-based descending
     mask = np.max(mask * np.reshape(order, [1, 1, -1]), -1)

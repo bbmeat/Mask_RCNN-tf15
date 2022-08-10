@@ -145,7 +145,7 @@ class BalloonDataset(utils.Dataset):
         """Generate instance masks for an image.
        Returns:
         masks: A bool array of shape [height, width, instance count] with
-            one mask per instance.
+            one cv2_mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.
         """
         # If not a balloon dataset image, delegate to parent class.
@@ -153,7 +153,7 @@ class BalloonDataset(utils.Dataset):
         if image_info["source"] != "balloon":
             return super(self.__class__, self).load_mask(image_id)
 
-        # Convert polygons to a bitmap mask of shape
+        # Convert polygons to a bitmap cv2_mask of shape
         # [height, width, instance_count]
         info = self.image_info[image_id]
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
@@ -163,7 +163,7 @@ class BalloonDataset(utils.Dataset):
             rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'])
             mask[rr, cc, i] = 1
 
-        # Return mask, and array of class IDs of each instance. Since we have
+        # Return cv2_mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
         return mask.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32)
 
@@ -202,16 +202,16 @@ def train(model):
 def color_splash(image, mask):
     """Apply color splash effect.
     image: RGB image [height, width, 3]
-    mask: instance segmentation mask [height, width, instance count]
+    cv2_mask: instance segmentation cv2_mask [height, width, instance count]
 
     Returns result image.
     """
     # Make a grayscale copy of the image. The grayscale copy still
     # has 3 RGB channels, though.
     gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
-    # Copy color pixels from the original color image where mask is set
+    # Copy color pixels from the original color image where cv2_mask is set
     if mask.shape[-1] > 0:
-        # We're treating all instances as one, so collapse the mask into one layer
+        # We're treating all instances as one, so collapse the cv2_mask into one layer
         mask = (np.sum(mask, -1, keepdims=True) >= 1)
         splash = np.where(mask, image, gray).astype(np.uint8)
     else:

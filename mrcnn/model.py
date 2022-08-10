@@ -578,14 +578,14 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, gt_masks, config)
     # Assign positive ROIs to GT masks
     # Permute masks to [N, height, width, 1]
     transposed_masks = tf.expand_dims(tf.transpose(gt_masks, [2, 0, 1]), -1)
-    # Pick the right mask for each ROI
+    # Pick the right cv2_mask for each ROI
     roi_masks = tf.gather(transposed_masks, roi_gt_box_assignment)
 
-    # Compute mask targets
+    # Compute cv2_mask targets
     boxes = positive_rois
     if config.USE_MINI_MASK:
         # Transform ROI corrdinates from normalized image space
-        # to normalized mini-mask space.
+        # to normalized mini-cv2_mask space.
         y1, x1, y2, x2 = tf.split(positive_rois, 4, axis=1)
         gt_y1, gt_x1, gt_y2, gt_x2 = tf.split(roi_gt_boxes, 4, axis=1)
         gt_h = gt_y2 - gt_y1
@@ -602,7 +602,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, gt_masks, config)
     # Remove the extra dimension from masks.
     masks = tf.squeeze(masks, axis=3)
 
-    # Threshold mask pixels at 0.5 to have GT masks be 0 or 1 to use with
+    # Threshold cv2_mask pixels at 0.5 to have GT masks be 0 or 1 to use with
     # binary cross entropy loss.
     masks = tf.round(masks)
 
@@ -958,7 +958,7 @@ def fpn_classifier_graph(rois, feature_maps, image_meta,
 
 def build_fpn_mask_graph(rois, feature_maps, image_meta,
                          pool_size, num_classes, train_bn=True):
-    """Builds the computation graph of the mask head of Feature Pyramid Network.
+    """Builds the computation graph of the cv2_mask head of Feature Pyramid Network.
 
     rois: [batch, num_rois, (y1, x1, y2, x2)] Proposal boxes in normalized
           coordinates.
@@ -1167,7 +1167,7 @@ def mrcnn_mask_loss_graph(target_masks, target_class_ids, pred_masks):
     pred_masks = tf.transpose(pred_masks, [0, 3, 1, 2])
 
     # Only positive ROIs contribute to the loss. And only
-    # the class specific mask of each ROI.
+    # the class specific cv2_mask of each ROI.
     positive_ix = tf.where(target_class_ids > 0)[:, 0]
     positive_class_ids = tf.cast(
         tf.gather(target_class_ids, positive_ix), tf.int64)
@@ -1192,7 +1192,7 @@ def mrcnn_mask_loss_graph(target_masks, target_class_ids, pred_masks):
 
 def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
                   use_mini_mask=False):
-    """Load and return ground truth data for an image (image, mask, bounding boxes).
+    """Load and return ground truth data for an image (image, cv2_mask, bounding boxes).
 
     augment: (Depricated. Use augmentation instead). If true, apply random
         image augmentation. Currently, only horizontal flipping is offered.
@@ -1210,11 +1210,11 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
     shape: the original shape of the image before resizing and cropping.
     class_ids: [instance_count] Integer class IDs
     bbox: [instance_count, (y1, x1, y2, x2)]
-    mask: [height, width, instance_count]. The height and width are those
+    cv2_mask: [height, width, instance_count]. The height and width are those
         of the image unless use_mini_mask is True, in which case they are
         defined in MINI_MASK_SHAPE.
     """
-    # Load image and mask
+    # Load image and cv2_mask
     image = dataset.load_image(image_id)
     mask, class_ids = dataset.load_mask(image_id)
     original_shape = image.shape
@@ -1256,22 +1256,22 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
         # Make augmenters deterministic to apply similarly to images and masks
         det = augmentation.to_deterministic()
         image = det.augment_image(image)
-        # Change mask to np.uint8 because imgaug doesn't support np.bool
+        # Change cv2_mask to np.uint8 because imgaug doesn't support np.bool
         mask = det.augment_image(mask.astype(np.uint8),
                                  hooks=imgaug.HooksImages(activator=hook))
         # Verify that shapes didn't change
         assert image.shape == image_shape, "Augmentation shouldn't change image size"
-        assert mask.shape == mask_shape, "Augmentation shouldn't change mask size"
-        # Change mask back to bool
+        assert mask.shape == mask_shape, "Augmentation shouldn't change cv2_mask size"
+        # Change cv2_mask back to bool
         mask = mask.astype(np.bool)
 
-    # Note that some boxes might be all zeros if the corresponding mask got cropped out.
+    # Note that some boxes might be all zeros if the corresponding cv2_mask got cropped out.
     # and here is to filter them out
     _idx = np.sum(mask, axis=(0, 1)) > 0
     mask = mask[:, :, _idx]
     class_ids = class_ids[_idx]
     # Bounding boxes. Note that some boxes might be all zeros
-    # if the corresponding mask got cropped out.
+    # if the corresponding cv2_mask got cropped out.
     # bbox: [num_instances, (y1, x1, y2, x2)]
     bbox = utils.extract_bboxes(mask)
 
@@ -1294,7 +1294,7 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
 
 
 def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
-    """Generate targets for training Stage 2 classifier and mask heads.
+    """Generate targets for training Stage 2 classifier and cv2_mask heads.
     This is not used in normal training. It's useful for debugging or to train
     the Mask RCNN heads without using the RPN head.
 
@@ -1428,20 +1428,20 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
         class_mask = gt_masks[:, :, gt_id]
 
         if config.USE_MINI_MASK:
-            # Create a mask placeholder, the size of the image
+            # Create a cv2_mask placeholder, the size of the image
             placeholder = np.zeros(config.IMAGE_SHAPE[:2], dtype=bool)
             # GT box
             gt_y1, gt_x1, gt_y2, gt_x2 = gt_boxes[gt_id]
             gt_w = gt_x2 - gt_x1
             gt_h = gt_y2 - gt_y1
-            # Resize mini mask to size of GT box
+            # Resize mini cv2_mask to size of GT box
             placeholder[gt_y1:gt_y2, gt_x1:gt_x2] = \
                 np.round(skimage.transform.resize(
                     class_mask, (gt_h, gt_w), order=1, mode="constant")).astype(bool)
             # Place the mini batch in the placeholder
             class_mask = placeholder
 
-        # Pick part of the mask and resize it
+        # Pick part of the cv2_mask and resize it
         y1, x1, y2, x2 = rois[i].astype(np.int32)
         m = class_mask[y1:y2, x1:x2]
         mask = skimage.transform.resize(m, config.MASK_SHAPE, order=1, mode="constant")
@@ -1649,7 +1649,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
         For example, passing imgaug.augmenters.Fliplr(0.5) flips images
         right/left 50% of the time.
     random_rois: If > 0 then generate proposals to be used to train the
-                 network classifier and mask heads. Useful if training
+                 network classifier and cv2_mask heads. Useful if training
                  the Mask RCNN part without the RPN.
     batch_size: How many images to return in each call
     detection_targets: If True, generate detection targets (class IDs, bbox
@@ -1960,7 +1960,7 @@ class MaskRCNN():
             config=config)([rpn_class, rpn_bbox, anchors])
 
         if mode == "training":
-            # Class ID mask to mark class IDs supported by the dataset the image
+            # Class ID cv2_mask to mark class IDs supported by the dataset the image
             # came from.
             active_class_ids = KL.Lambda(
                 lambda x: parse_image_meta_graph(x)["active_class_ids"]
@@ -2241,7 +2241,7 @@ class MaskRCNN():
             # Continue from we left of. Get epoch and date from the file name
             # A sample model path might look like:
             # /path/to/logs/coco20171029T2315/mask_rcnn_coco_0001.h5
-            regex = r".*/[\w-]+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_[\w-]+(\d{4})\.h5"
+            regex = r".*/[\w-]+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/cv2_mask\_rcnn\_[\w-]+(\d{4})\.h5"
             m = re.match(regex, model_path)
             if m:
                 now = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)),
@@ -2277,7 +2277,7 @@ class MaskRCNN():
         layers: Allows selecting wich layers to train. It can be:
             - A regular expression to match layer names to train
             - One of these predefined values:
-              heads: The RPN, classifier and mask heads of the network
+              heads: The RPN, classifier and cv2_mask heads of the network
               all: All the layers
               3+: Train Resnet stage 3 and up
               4+: Train Resnet stage 4 and up
@@ -2449,7 +2449,7 @@ class MaskRCNN():
         # Resize masks to original image size and set boundary threshold.
         full_masks = []
         for i in range(N):
-            # Convert neural network mask to full size mask
+            # Convert neural network cv2_mask to full size cv2_mask
             full_mask = utils.unmold_mask(masks[i], boxes[i], original_image_shape)
             full_masks.append(full_mask)
         full_masks = np.stack(full_masks, axis=-1)\
@@ -2795,7 +2795,7 @@ def trim_zeros_graph(boxes, name=None):
     are padded with zeros. This removes zero boxes.
 
     boxes: [N, 4] matrix of boxes.
-    non_zeros: [N] a 1D boolean mask identifying the rows to keep
+    non_zeros: [N] a 1D boolean cv2_mask identifying the rows to keep
     """
     non_zeros = tf.cast(tf.reduce_sum(tf.abs(boxes), axis=1), tf.bool)
     boxes = tf.boolean_mask(boxes, non_zeros, name=name)
