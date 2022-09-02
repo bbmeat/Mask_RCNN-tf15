@@ -99,7 +99,8 @@ model.load_weights(model_path, by_name=True)
 class_names = ['BG', 'greenstrawberry', 'strawberry']
 
 image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
-
+# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb2.png")
+# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb3.png")
 # file_names = next(os.walk(IMAGE_DIR))[2]
 # image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
 
@@ -110,24 +111,6 @@ b = datetime.now()
 # Visualize results
 print("shijian", (b - a).seconds)
 r = results[0]
-# visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
+visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
 
-a = r['rois'].shape[0]
-for i in range(a):
-    mask = r['masks'][:, :, i]
-count_mask = np.where(mask == 1)
-# print('%s/n%s'%count_mask)
-print(len(count_mask))
-print(count_mask)
-
-nplist = list()
-n = np.array(nplist)
-for a in range(len(count_mask)):
-    for b in range(2):
-        n = np.append(n, count_mask[a])
-
-    mask_area = mask_count.mask_count(n)
-    print("area""%s"":"%a+1, mask_area)
-
-    # n = np.append(n, count_mask[a])
 

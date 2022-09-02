@@ -135,16 +135,23 @@ def display_instances(image, boxes, masks, class_ids, class_names,
                                 edgecolor=color, facecolor='none')
             ax.add_patch(p)
 
+        # area
+        # 扁平化二维，却只行一元
+        pre_masks = np.reshape(masks > .5, (-1, masks.shape[-1])).astype(np.float32)
+        # 计算mask_面积
+        area1 = np.sum(pre_masks, axis=0)
         # Label
         if not captions:
             class_id = class_ids[i]
+            area = area1[i]
             score = scores[i] if scores is not None else None
             label = class_names[class_id]
-            caption = "{} {:.3f}".format(label, score) if score else label
+            caption = "{} {:.3f}\narea:{:.1f}".format(label, score, area) if score else label
         else:
             caption = captions[i]
         ax.text(x1, y1 + 8, caption,
                 color='w', size=11, backgroundcolor="none")
+
 
         # Mask
         mask = masks[:, :, i]
