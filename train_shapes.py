@@ -21,7 +21,6 @@ import re
 import time
 import numpy as np
 import cv2
-import matplotlib
 import matplotlib.pyplot as plt
 
 import warnings
@@ -92,15 +91,6 @@ config.display()
 # ## Notebook Preferences
 
 # In[3]:
-
-
-def get_ax(rows=1, cols=1, size=8):
-    """
-    返回一个用于笔记本中的所有可视化的Matplotlib Axes数组。提供一个中心点来控制图形的大小。
-    更改默认大小属性以控制渲染图像的大小
-    """
-    _, ax = plt.subplots(rows, cols, figsize=(size * cols, size * rows))
-    return ax
 
 
 # ## Dataset
@@ -234,7 +224,7 @@ dataset_val.load_shapes(3, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
 
 # 加载和显示随机样本
-image_ids = np.random.choice(dataset_train.image_ids, 5)
+image_ids = np.random.choice(dataset_train.image_ids, 13)
 for image_id in image_ids:
     image = dataset_train.load_image(image_id)
     mask, class_ids = dataset_train.load_mask(image_id)
@@ -244,8 +234,22 @@ for image_id in image_ids:
 
 # ## Create Model
 
-# Create model in training mode
-model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
+model = modellib.MaskRCNN(mode="training", config=config,
+                          model_dir=MODEL_DIR)
+
+# Which weights to start with?
+init_with = "coco"  # imagenet, coco, or last
+
+if init_with == "imagenet":
+    model.load_weights(model.get_imagenet_weights(), by_name=True)
+elif init_with == "coco":
+    model.load_weights(COCO_MODEL_PATH, by_name=True,
+                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
+                                "mrcnn_bbox", "mrcnn_mask"])
+elif init_with == "last":
+    # Load the last model you trained and continue training
+    model.load_weights(model.find_last(), by_name=True)
+
 # ## Training
 # 
 # Train in two stages:
@@ -264,14 +268,14 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epoc
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
 model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
 
-
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
 # 取消注释以手动保存
-# model_path = os.path.join(MODEL_DIR, "mask_rcnn_coco.h5")
-# model.keras_model.save_weights(model_path)
-
-
+model_weight_path = os.path.join(MODEL_DIR, "mask_rcnn_shapes.h5")
+model.keras_model.save_weights(model_weight_path)
+# model_path = os.path.join(MODEL_DIR, "model.h5")
+# model.keras_model.save(model_path)
+"""
 # ## 检测
 
 
@@ -284,9 +288,7 @@ class InferenceConfig(StrawberryConfig):
 inference_config = InferenceConfig()
 
 # Recreate the model in inference mode
-model = modellib.MaskRCNN(mode="inference",
-                          config=inference_config,
-                          model_dir=MODEL_DIR)
+model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
 # Get path to saved weights
 # 要么设置一个特定的路径，要么找到最后训练的权重
@@ -296,6 +298,7 @@ model_path = model.find_last()
 # Load trained weights
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
+
 
 # Test on a random image
 image_id = random.choice(dataset_val.image_ids)
@@ -308,13 +311,12 @@ log("gt_class_id", gt_class_id)
 log("gt_bbox", gt_bbox)
 log("gt_mask", gt_mask)
 class_names = ['BG', 'greenstrawberry', 'strawberry']
-visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, class_names, figsize=(8, 8))
-
+visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
+                            dataset_train.class_names, figsize=(8, 8))
 results = model.detect([original_image], verbose=1)
-
 r = results[0]
 visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
-                            class_names, r['scores'], ax=get_ax())
+                            dataset_val.class_names, r['scores'], ax=get_ax())
 
 # ## 评估
 
@@ -337,5 +339,5 @@ for image_id in image_ids:
     APs.append(AP)
 
 print("mAP: ", np.mean(APs))
-"""
+
 """

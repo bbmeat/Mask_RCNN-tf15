@@ -9,7 +9,6 @@ Written by Waleed Abdulla
 
 import os
 import sys
-import logging
 import random
 import itertools
 import colorsys
@@ -41,7 +40,7 @@ def display_images(images, titles=None, cols=4, cmap=None, norm=None,
     cols: number of images per row
     cmap: Optional. Color map to use. For example, "Blues".
     norm: Optional. A Normalize instance to map values to colors.
-    interpolation: Optional. Image interporlation to use for display.
+    interpolation: Optional. Image interpolation to use for display.
     """
     titles = titles if titles is not None else [""] * len(images)
     rows = len(images) // cols + 1
@@ -71,7 +70,7 @@ def random_colors(N, bright=True):
 
 
 def apply_mask(image, mask, color, alpha=0.5):
-    """Apply the given cv2_mask to the image.
+    """Apply the given mask to the image.
     """
     for c in range(3):
         image[:, :, c] = np.where(mask == 1,
@@ -141,7 +140,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             class_id = class_ids[i]
             score = scores[i] if scores is not None else None
             label = class_names[class_id]
-            x = random.randint(x1, (x1 + x2) // 2)
             caption = "{} {:.3f}".format(label, score) if score else label
         else:
             caption = captions[i]
@@ -154,7 +152,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             masked_image = apply_mask(masked_image, mask, color)
 
         # Mask Polygon
-        # Pad to ensure proper polygons for masks that touch image edges.
+        # 垫以确保遮罩接触图像边缘的适当多边形。
         padded_mask = np.zeros(
             (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
         padded_mask[1:-1, 1:-1] = mask
@@ -164,6 +162,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             verts = np.fliplr(verts) - 1
             p = Polygon(verts, facecolor="none", edgecolor=color)
             ax.add_patch(p)
+    # print('mask', np.where(mask == 1))
     ax.imshow(masked_image.astype(np.uint8))
     if auto_show:
         plt.show()
@@ -281,7 +280,7 @@ def draw_box(image, box, color):
     return image
 
 
-def display_top_masks(image, mask, class_ids, class_names, limit=3):
+def display_top_masks(image, mask, class_ids, class_names, limit=4):
     """Display the given image and the top few class masks."""
     to_display = []
     titles = []
@@ -293,8 +292,6 @@ def display_top_masks(image, mask, class_ids, class_names, limit=3):
                  for i in unique_class_ids]
     top_ids = [v[0] for v in sorted(zip(unique_class_ids, mask_area),
                                     key=lambda r: r[1], reverse=True) if v[1] > 0]
-    print("top", top_ids)
-    print("un", unique_class_ids)
     # Generate images and titles
     for i in range(limit):
         class_id = top_ids[i] if i < len(top_ids) else -1
@@ -327,7 +324,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
     gt_class_ids: [N] int. Ground truth class IDs
     pred_class_id: [N] int. Predicted class IDs
     pred_scores: [N] float. The probability scores of predicted classes
-    overlaps: [pred_boxes, gt_boxes] IoU overlaps of predictins and GT boxes.
+    overlaps: [pred_boxes, gt_boxes] IoU overlaps of predictions and GT boxes.
     class_names: list of all class names in the dataset
     threshold: Float. The prediction probability required to predict a class
     """
@@ -363,7 +360,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
 def draw_boxes(image, boxes=None, refined_boxes=None,
                masks=None, captions=None, visibilities=None,
                title="", ax=None):
-    """Draw bounding boxes and segmentation masks with differnt
+    """Draw bounding boxes and segmentation masks with different
     customizations.
 
     boxes: [N, (y1, x1, y2, x2, class_id)] in image coordinates.
@@ -372,7 +369,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
     masks: [N, height, width]
     captions: List of N titles to display on each box
     visibilities: (optional) List of values of 0, 1, or 2. Determine how
-        prominant each bounding box should be.
+        prominent each bounding box should be.
     title: An optional title to show over the image
     ax: (optional) Matplotlib axis to draw on.
     """
@@ -439,7 +436,6 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
             # If there are refined boxes, display captions on them
             if refined_boxes is not None:
                 y1, x1, y2, x2 = ry1, rx1, ry2, rx2
-            x = random.randint(x1, (x1 + x2) // 2)
             ax.text(x1, y1, caption, size=11, verticalalignment='top',
                     color='w', backgroundcolor="none",
                     bbox={'facecolor': color, 'alpha': 0.5,
