@@ -123,7 +123,11 @@ print(count_mask)
 nplist = list()
 n = np.array(nplist)
 for a in range(len(count_mask)):
-    n = np.append(n, count_mask[a])
+    for b in range(2):
+        n = np.append(n, count_mask[a])
 
-iou_aera = mask_count.mask_count(n)
-print(iou_aera)
+    mask_area = mask_count.mask_count(n)
+    print("area""%s"":"%a+1, mask_area)
+
+    # n = np.append(n, count_mask[a])
+
