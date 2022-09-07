@@ -275,7 +275,7 @@ model_weight_path = os.path.join(MODEL_DIR, "mask_rcnn_shapes.h5")
 model.keras_model.save_weights(model_weight_path)
 # model_path = os.path.join(MODEL_DIR, "model.h5")
 # model.keras_model.save(model_path)
-"""
+
 # ## 检测
 
 
@@ -286,7 +286,7 @@ class InferenceConfig(StrawberryConfig):
 
 
 inference_config = InferenceConfig()
-
+"""
 # Recreate the model in inference mode
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
@@ -320,7 +320,7 @@ visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'
 
 # ## 评估
 
-
+"""
 # Compute VOC-Style mAP @ IoU=0.5
 # 运行10个图像。提高精度
 image_ids = np.random.choice(dataset_val.image_ids, 10)
@@ -340,4 +340,4 @@ for image_id in image_ids:
 
 print("mAP: ", np.mean(APs))
 
-"""
+

@@ -2,7 +2,6 @@ import cv2
 import depthai as dai
 import numpy as np
 
-
 def getFrame(queue):
     # Get frame from queue
     frame = queue.get()
@@ -119,6 +118,8 @@ with dai.Device(pipeline) as device:
         imOut = cv2.line(imOut, (mouseX, mouseY),
                          (1280, mouseY), (0, 0, 255), 2)
         # Draw clicked point.
+        imOutL = np.uint8(leftFrame)
+        imOutR = np.uint8(rightFrame)
         imOut = cv2.circle(imOut, (mouseX, mouseY), 2,
                            (255, 255, 128), 2)
         cv2.imshow("Stereo Pair", imOut)

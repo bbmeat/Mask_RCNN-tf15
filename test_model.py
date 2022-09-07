@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import cv2
 import time
 import mask_count
+import HostSpatialsCalc
+import depthai as dai
 
 from mrcnn.config import Config
 from datetime import datetime
@@ -88,7 +90,7 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "G:/Python/Mask_RCNN-tf15/logs/shapes20220901T1707/mask_rcnn_shapes_0005.h5"
+model_path = "G:/Python/Mask_RCNN-tf15/logs/shapes20220905T1512/mask_rcnn_shapes_0005.h5"
 # model_path = model.find_last()
 
 
@@ -112,5 +114,12 @@ b = datetime.now()
 print("shijian", (b - a).seconds)
 r = results[0]
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
+print('rois', r['rois'][0])
 
+y1, x1, y2, x2 = r['rois'][0]
+
+# hostSpatials = HostSpatialsCalc.main.hostSpatials
+# spatials, centroid = hostSpatials.calc_spatials(HostSpatialsCalc.main.depthFrame, (y1, x1, y2, x2))
+# print('zuob', spatials)
+# print('zhixin', centroid)
 

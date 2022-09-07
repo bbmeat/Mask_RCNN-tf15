@@ -44,7 +44,7 @@ depth.disparity.link(xout.input)
 # Connect to device and start pipeline
 with dai.Device(pipeline) as device:
 
-    # Output queue will be used to get the disparity frames from the outputs defined above
+    # 输出队列将用于从上面定义的输出中获取视差帧
     q = device.getOutputQueue(name="disparity", maxSize=4, blocking=False)
 
     while True:
