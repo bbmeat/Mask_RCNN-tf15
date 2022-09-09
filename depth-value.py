@@ -30,10 +30,10 @@ def getStereoPair(pipeline, monoLeft, monoRight):
     # Configure stereo pair for depth estimation
     stereo = pipeline.createStereoDepth()
 
-    # Checks occluded pixels and marks them as invalid
+    # 检查遮挡像素并将其标记为无效
     stereo.setLeftRightCheck(True)
 
-    # Configure left and right cameras to work as a stereo pair
+    # 配置左右摄像头作为立体声对工作
     monoLeft.out.link(stereo.left)
     monoRight.out.link(stereo.right)
 

@@ -65,13 +65,6 @@ class ShapesConfig(Config):
 
 
 def get_ax(rows=1, cols=1, size=8):
-    """Return a Matplotlib Axes array to be used in
-    all visualizations in the notebook. Provide a
-    central point to control graph sizes.
-
-    Change the default size attribute to control the size
-    of rendered images
-    """
     _, ax = plt.subplots(rows, cols, figsize=(size * cols, size * rows))
     return ax
 
@@ -97,29 +90,24 @@ model_path = "G:/Python/Mask_RCNN-tf15/logs/shapes20220905T1512/mask_rcnn_shapes
 # Load trained weights
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
-
+# json_str = model.keras_model.to_json()
+# model_path = os.path.join(MODEL_DIR, "model.h5")
+#
+# model.keras_model.save(model_path)
 class_names = ['BG', 'greenstrawberry', 'strawberry']
 
 image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb2.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb3.png")
-# file_names = next(os.walk(IMAGE_DIR))[2]
-# image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
 
 a = datetime.now()
 # Run detection
+# print([image])
 results = model.detect([image], verbose=1)
 b = datetime.now()
 # Visualize results
 print("shijian", (b - a).seconds)
 r = results[0]
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
-print('rois', r['rois'][0])
-
-y1, x1, y2, x2 = r['rois'][0]
-
-# hostSpatials = HostSpatialsCalc.main.hostSpatials
-# spatials, centroid = hostSpatials.calc_spatials(HostSpatialsCalc.main.depthFrame, (y1, x1, y2, x2))
-# print('zuob', spatials)
-# print('zhixin', centroid)
+area1 = visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
 

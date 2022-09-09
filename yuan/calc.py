@@ -9,7 +9,8 @@ class HostSpatialsCalc:
         calibData = device.readCalibration()
         # Required information for calculating spatial coordinates on the host
         self.monoHFOV = np.deg2rad(calibData.getFov(dai.CameraBoardSocket.LEFT))
-
+        print(self.monoHFOV)
+        print('fov', calibData.getFov(dai.CameraBoardSocket.LEFT))
         # Values
         self.DELTA = 5
         self.THRESH_LOW = 200  # 20cm
@@ -47,13 +48,14 @@ class HostSpatialsCalc:
 
         averageDepth = averaging_method(depthROI[inRange])
 
-        centroid = {  # Get centroid of the ROI
+        centroid = {  # 获取ROI的质心
             'x': int((xmax + xmin) / 2),
             'y': int((ymax + ymin) / 2)
         }
 
         midW = int(depthFrame.shape[1] / 2)  # middle of the depth img width
         midH = int(depthFrame.shape[0] / 2)  # middle of the depth img height
+
         bb_x_pos = centroid['x'] - midW
         bb_y_pos = centroid['y'] - midH
 

@@ -80,14 +80,17 @@ with dai.Device(pipeline) as device:
         disp = (disp * (255 / stereo.initialConfig.getMaxDisparity())).astype(np.uint8)
         disp = cv2.applyColorMap(disp, cv2.COLORMAP_JET)
         inRgb = qRgb.get()
-        text.rectangle(disp, (x1, y1), (x2, y2))
-        text.putText(disp, "X: " + ("{:.1f}mm".format(spatials['x'])), (x1 + 10, y1 - 50))
-        text.putText(disp, "Y: " + ("{:.1f}mm".format(spatials['y'])), (x1 + 10, y1 - 30))
-        text.putText(disp, "Z: " + ("{:.1f}mm".format(spatials['z'])), (x1 + 10, y1 - 10))
+        RgbFrame = inRgb.getCvFrame()
+        text.rectangle(RgbFrame, (x1, y1), (x2, y2))
+        text.putText(RgbFrame, "Height: " + ("{:.1f}cm".format(spatials['h']/10)), (x1 + 10, y1 - 50))
+        text.putText(RgbFrame, "a: " + ("{:.1f}cm^2".format(spatials['a']/100)), (x1 + 10, y1 - 30))
+        text.putText(RgbFrame, "Z: " + ("{:.1f}cm".format(spatials['z']/10)), (x1 + 10, y1 - 10))
+        # text.putText(disp, "Height" + ("{:.1f}mm".format(spatials['h'])), (x1 + 10, y1 - 10))
 
         # Show the frame
         cv2.imshow("depth", disp)
-        cv2.imshow("rgb", inRgb.getCvFrame())
+        cv2.imshow("rgb", RgbFrame)
+        cv2.imshow("r", inRgb.getCvFrame())
         key = cv2.waitKey(1)
         if key == ord('q'):
             break

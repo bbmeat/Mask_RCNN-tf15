@@ -273,8 +273,10 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10,
 # 取消注释以手动保存
 model_weight_path = os.path.join(MODEL_DIR, "mask_rcnn_shapes.h5")
 model.keras_model.save_weights(model_weight_path)
-# model_path = os.path.join(MODEL_DIR, "model.h5")
-# model.keras_model.save(model_path)
+
+# json_str = model.keras_model.to_json()
+model_path = os.path.join(MODEL_DIR, "mask_rcnn_model.h5")
+model.keras_model.save(model_path)
 
 # ## 检测
 

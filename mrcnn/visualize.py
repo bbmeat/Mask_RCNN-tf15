@@ -99,6 +99,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     """
     # Number of instances
     N = boxes.shape[0]
+
     if not N:
         print("\n*** No instances to display *** \n")
     else:
@@ -126,7 +127,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
 
         # Bounding box
         if not np.any(boxes[i]):
-            # Skip this instance. Has no bbox. Likely lost in image cropping.
+            # 跳过这个实例。没有bbox。可能在图像裁剪中丢失。
             continue
         y1, x1, y2, x2 = boxes[i]
         if show_bbox:
@@ -158,14 +159,14 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         if show_mask:
             masked_image = apply_mask(masked_image, mask, color)
 
-        # Mask Polygon
+        # 面具多边形
         # 垫以确保遮罩接触图像边缘的适当多边形。
         padded_mask = np.zeros(
             (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
         padded_mask[1:-1, 1:-1] = mask
         contours = find_contours(padded_mask, 0.5)
         for verts in contours:
-            # Subtract the padding and flip (y, x) to (x, y)
+            # 减去填充和翻转(y, x) to (x, y)
             verts = np.fliplr(verts) - 1
             p = Polygon(verts, facecolor="none", edgecolor=color)
             ax.add_patch(p)
@@ -173,7 +174,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     ax.imshow(masked_image.astype(np.uint8))
     if auto_show:
         plt.show()
-
+    return area
 
 def display_differences(image,
                         gt_box, gt_class_id, gt_mask,
@@ -288,7 +289,7 @@ def draw_box(image, box, color):
 
 
 def display_top_masks(image, mask, class_ids, class_names, limit=4):
-    """Display the given image and the top few class masks."""
+    """显示给定的图像和前几个类掩码。"""
     to_display = []
     titles = []
     to_display.append(image)
