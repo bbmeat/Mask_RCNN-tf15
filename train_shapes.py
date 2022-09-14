@@ -24,10 +24,10 @@ import cv2
 import matplotlib.pyplot as plt
 
 import warnings
-
+import json
 import yaml
 from PIL import Image
-
+import congfig
 warnings.filterwarnings(action='ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -57,45 +57,11 @@ if not os.path.exists(COCO_MODEL_PATH):
 iter_num = 0
 
 
-# ## Configurations
-
-
-class StrawberryConfig(Config):
-    """
-    用于训练玩具形状数据集的配置。
-    从基本的Config类派生，并重写特定于玩具形状数据集的值。
-    """
-    # Give the configuration a recognizable name
-    NAME = "shapes"
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-
-    # Number of classes (including background)
-    NUM_CLASSES = 1 + 2
-    IMAGE_MIN_DIM = 256
-    IMAGE_MAX_DIM = 768
-    MAX_GT_INSTANCES = 100
-    RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
-    TRAIN_ROIS_PER_IMAGE = 100
-    POST_NMS_ROIS_INFERENCE = 250
-    POST_NMS_ROIS_TRAINING = 500
-    STEPS_PER_EPOCH = 30
-    VALIDATION_STEPS = 5
-    LEARNING_RATE = 0.01
-
-
-config = StrawberryConfig()
+config = congfig.StrawberryConfig()
 config.display()
-
-
-# ## Notebook Preferences
-
-# In[3]:
-
 
 # ## Dataset
 
-# In[4]:
 class StrawberryDataset(utils.Dataset):
 
     def load_shapes(self, count, img_floder, mask_floder, imglist, dataset_root_path):
@@ -262,11 +228,11 @@ elif init_with == "last":
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=2, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=2, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
@@ -275,8 +241,10 @@ model_weight_path = os.path.join(MODEL_DIR, "mask_rcnn_shapes.h5")
 model.keras_model.save_weights(model_weight_path)
 
 # json_str = model.keras_model.to_json()
-model_path = os.path.join(MODEL_DIR, "mask_rcnn_model.h5")
-model.keras_model.save(model_path)
+# with open("model.json", "w") as json_file:
+#     json_file.write(json_str)
+# model_path = os.path.join(MODEL_DIR, "mask_rcnn_model.h5")
+# model.keras_model.save(model_path)
 
 # ## 检测
 

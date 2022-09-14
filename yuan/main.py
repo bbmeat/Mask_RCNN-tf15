@@ -22,7 +22,7 @@ monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
 stereo.initialConfig.setConfidenceThreshold(255)
-stereo.setLeftRightCheck(True)
+stereo.setLeftRightCheck(False)
 stereo.setSubpixel(False)
 stereo.setExtendedDisparity(True)
 

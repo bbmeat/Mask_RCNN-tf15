@@ -24,6 +24,7 @@ monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
 monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
 stereo.initialConfig.setConfidenceThreshold(255)
+stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
 stereo.setLeftRightCheck(True)
 stereo.setSubpixel(False)
 stereo.setExtendedDisparity(True)
@@ -65,6 +66,8 @@ with dai.Device(pipeline) as device:
     text = TextHelper()
     hostSpatials = HostSpatialsCalc(device)
     y1, x1, y2, x2 = test_model.r['rois'][0]
+    x = int((x1 + x2) / 2)
+    y = int((y1 + y2))
     qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
 
     # print("Use WASD keys to move ROI.\nUse 'r' and 'f' to change ROI size.")
@@ -72,7 +75,7 @@ with dai.Device(pipeline) as device:
     while True:
         depthFrame = depthQueue.get().getFrame()
         # 从深度框架计算空间坐标
-        spatials, centroid = hostSpatials.calc_spatials(depthFrame, (y1, x1, y2, x2))
+        spatials, centroid = hostSpatials.calc_spatials(depthFrame, (x1, y1, x2, y2))
         # 在我们的例子中，Centroid == x/y ，返回值，空间的，形心
 
         # 获得视差帧以获得更好的深度可视化
@@ -81,6 +84,7 @@ with dai.Device(pipeline) as device:
         disp = cv2.applyColorMap(disp, cv2.COLORMAP_JET)
         inRgb = qRgb.get()
         RgbFrame = inRgb.getCvFrame()
+
         text.rectangle(RgbFrame, (x1, y1), (x2, y2))
         text.putText(RgbFrame, "Height: " + ("{:.1f}cm".format(spatials['h']/10)), (x1 + 10, y1 - 50))
         text.putText(RgbFrame, "a: " + ("{:.1f}cm^2".format(spatials['a']/100)), (x1 + 10, y1 - 30))

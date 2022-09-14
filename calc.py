@@ -117,20 +117,16 @@ class HostSpatialsCalc:
     # ROI必须是整型数的列表
     def calc_spatials(self, depthFrame, roi, averaging_method=np.mean):
         roi = self._check_input(roi, depthFrame)  # 如果点通过，将其转换为ROI
-        xmin, ymin, xmax, ymax = roi
-        # ymin, xmin, ymax, xmax = roi
+        ymin, xmin, ymax, xmax = roi
         centerx = int((xmin + xmax)/2)
         centery = int((ymin + ymax)/2)
-        self.DELTA = 5  # 在点周围取10x10深度像素进行深度平均
-        x = min(max(centerx, self.DELTA), depthFrame.shape[1] - self.DELTA)
-        y = min(max(centery, self.DELTA), depthFrame.shape[0] - self.DELTA)
-        cxmin = x - self.DELTA
-        cxmax = x + self.DELTA
-        cymin = y - self.DELTA
-        cymax = y + self.DELTA
+        cxmin = centerx - self.DELTA
+        cxmax = centerx + self.DELTA
+        cymin = centery - self.DELTA
+        cymax = centery + self.DELTA
         # 计算ROI中的平均深度。
         # depthROI = depthFrame[int((3*ymin+ymax)/4):int((ymin+3*ymax)/4), int((3*xmin+xmax)/4):int((xmin+3*xmax)/4)]
-        depthROI = depthFrame[cymin:cymax, cxmin:cxmax]
+        depthROI = depthFrame[ymin:ymax, xmin:xmax]
         inRange = (self.THRESH_LOW <= depthROI) & (depthROI <= self.THRESH_HIGH)
 
         averageDepth = averaging_method(depthROI[inRange])

@@ -10,7 +10,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import cv2
 import time
-import mask_count
 import HostSpatialsCalc
 import depthai as dai
 
@@ -24,6 +23,7 @@ ROOT_DIR = os.getcwd()
 sys.path.append(ROOT_DIR)  # To find local version of the library
 import mrcnn.model as modellib
 from mrcnn import visualize
+from mrcnn import model
 
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 IMAGE_DIR = os.path.join(ROOT_DIR, "train_data/val")
@@ -83,17 +83,14 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "G:/Python/Mask_RCNN-tf15/logs/shapes20220905T1512/mask_rcnn_shapes_0005.h5"
+model_path = "G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5"
 # model_path = model.find_last()
 
 
 # Load trained weights
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
-# json_str = model.keras_model.to_json()
-# model_path = os.path.join(MODEL_DIR, "model.h5")
-#
-# model.keras_model.save(model_path)
+
 class_names = ['BG', 'greenstrawberry', 'strawberry']
 
 image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
@@ -108,6 +105,6 @@ b = datetime.now()
 # Visualize results
 print("shijian", (b - a).seconds)
 r = results[0]
-visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
-area1 = visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
+# visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
+# area1 = visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
 
