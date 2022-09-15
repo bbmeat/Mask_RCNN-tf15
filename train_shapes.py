@@ -57,8 +57,8 @@ if not os.path.exists(COCO_MODEL_PATH):
 iter_num = 0
 
 
-config = congfig.StrawberryConfig()
-config.display()
+StrawberryConfig = congfig.StrawberryConfig()
+StrawberryConfig.display()
 
 # ## Dataset
 
@@ -200,7 +200,7 @@ for image_id in image_ids:
 
 # ## Create Model
 
-model = modellib.MaskRCNN(mode="training", config=config,
+model = modellib.MaskRCNN(mode="training", config=StrawberryConfig,
                           model_dir=MODEL_DIR)
 
 # Which weights to start with?
@@ -228,11 +228,11 @@ elif init_with == "last":
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=2, layers='heads')
+model.train(dataset_train, dataset_val, learning_rate=StrawberryConfig.LEARNING_RATE, epochs=5, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=2, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=StrawberryConfig.LEARNING_RATE / 10, epochs=5, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存

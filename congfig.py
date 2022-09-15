@@ -6,7 +6,7 @@ class StrawberryConfig(Config):
     从基本的Config类派生，并重写特定于玩具形状数据集的值。
     """
     # Give the configuration a recognizable name
-    NAME = "shapes"
+    NAME = "strawberry"
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
@@ -19,6 +19,6 @@ class StrawberryConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 100
     POST_NMS_ROIS_INFERENCE = 250
     POST_NMS_ROIS_TRAINING = 500
-    STEPS_PER_EPOCH = 30
+    STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 5
     LEARNING_RATE = 0.01
