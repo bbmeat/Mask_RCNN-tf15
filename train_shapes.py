@@ -15,19 +15,14 @@
 
 import os
 import sys
-import random
-import math
-import re
-import time
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
 import warnings
-import json
 import yaml
 from PIL import Image
-import congfig
+
 warnings.filterwarnings(action='ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -38,10 +33,8 @@ ROOT_DIR = os.getcwd()
 sys.path.append(ROOT_DIR)  # 找到本地目录
 
 from mrcnn.config import Config
-from mrcnn import utils
-import mrcnn.model as modellib
-from mrcnn import visualize
-from mrcnn.model import log
+from mrcnn import utils, visualize
+import mrcnn as modellib
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -49,16 +42,37 @@ from mrcnn.model import log
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
 # Local path to trained weights file
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
+COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask-rcnn/mask_rcnn_coco.h5")
 # Download COCO trained weights from Releases if needed
 if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
 
 iter_num = 0
+class StrawberryConfig(Config):
+    """
+    用于训练玩具形状数据集的配置。
+    从基本的Config类派生，并重写特定于玩具形状数据集的值。
+    """
+    # Give the configuration a recognizable name
+    NAME = "shapes"
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
 
+    # Number of classes (including background)
+    NUM_CLASSES = 1 + 2
+    IMAGE_MIN_DIM = 256
+    IMAGE_MAX_DIM = 768
+    MAX_GT_INSTANCES = 100
+    RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
+    TRAIN_ROIS_PER_IMAGE = 100
+    POST_NMS_ROIS_INFERENCE = 250
+    POST_NMS_ROIS_TRAINING = 500
+    STEPS_PER_EPOCH = 30
+    VALIDATION_STEPS = 5
+    LEARNING_RATE = 0.01
 
-StrawberryConfig = congfig.StrawberryConfig()
-StrawberryConfig.display()
+config = StrawberryConfig()
+config.display()
 
 # ## Dataset
 
@@ -200,7 +214,7 @@ for image_id in image_ids:
 
 # ## Create Model
 
-model = modellib.MaskRCNN(mode="training", config=StrawberryConfig,
+model = modellib.MaskRCNN(mode="training", config=config,
                           model_dir=MODEL_DIR)
 
 # Which weights to start with?
@@ -228,11 +242,11 @@ elif init_with == "last":
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=StrawberryConfig.LEARNING_RATE, epochs=5, layers='heads')
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=StrawberryConfig.LEARNING_RATE / 10, epochs=5, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
@@ -249,7 +263,7 @@ model.keras_model.save_weights(model_weight_path)
 # ## 检测
 
 
-class InferenceConfig(StrawberryConfig):
+class InferenceConfig(config):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     USE_MINI_MASK = False

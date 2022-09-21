@@ -2,18 +2,10 @@
 
 import os
 import sys
-import random
-import math
-import numpy as np
 import skimage.io
-import matplotlib
 import matplotlib.pyplot as plt
-import cv2
-import time
-import HostSpatialsCalc
-import depthai as dai
 
-from mrcnn.config import Config
+from mrcnn import Config
 from datetime import datetime
 
 # Root directory of the project
@@ -21,15 +13,34 @@ from datetime import datetime
 ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-import mrcnn.model as modellib
+import mrcnn as modellib
 from mrcnn import visualize
-from mrcnn import model
-import congfig
+
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 IMAGE_DIR = os.path.join(ROOT_DIR, "train_data/val")
 
-strawberry = congfig.StrawberryConfig()
+class StrawberryConfig(Config):
+    """
+    用于训练玩具形状数据集的配置。
+    从基本的Config类派生，并重写特定于玩具形状数据集的值。
+    """
+    # Give the configuration a recognizable name
+    NAME = "shapes"
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
 
+    # Number of classes (including background)
+    NUM_CLASSES = 1 + 2
+    IMAGE_MIN_DIM = 256
+    IMAGE_MAX_DIM = 768
+    MAX_GT_INSTANCES = 100
+    RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
+    TRAIN_ROIS_PER_IMAGE = 100
+    POST_NMS_ROIS_INFERENCE = 250
+    POST_NMS_ROIS_TRAINING = 500
+    STEPS_PER_EPOCH = 30
+    VALIDATION_STEPS = 5
+    LEARNING_RATE = 0.01
 
 def get_ax(rows=1, cols=1, size=8):
     _, ax = plt.subplots(rows, cols, figsize=(size * cols, size * rows))
@@ -38,7 +49,7 @@ def get_ax(rows=1, cols=1, size=8):
 
 # import train_tongue
 # class InferenceConfig(coco.CocoConfig):
-class InferenceConfig(strawberry):
+class InferenceConfig(StrawberryConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     GPU_COUNT = 1
@@ -50,7 +61,7 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5"
+model_path = "/logs/mask_rcnn_shapes.h5"
 # model_path = model.find_last()
 
 
