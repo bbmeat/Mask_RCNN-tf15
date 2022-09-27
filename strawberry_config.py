@@ -11,7 +11,7 @@ class StrawberryConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 2
+    NUM_CLASSES = 1 + 1
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
     MAX_GT_INSTANCES = 100

@@ -5,7 +5,7 @@ import sys
 import skimage.io
 import matplotlib.pyplot as plt
 
-from mrcnn import Config
+from mrcnn.config import Config
 from datetime import datetime
 
 # Root directory of the project
@@ -13,7 +13,7 @@ from datetime import datetime
 ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-import mrcnn as modellib
+import mrcnn.model as modellib
 from mrcnn import visualize
 
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
@@ -30,7 +30,7 @@ class StrawberryConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 2
+    NUM_CLASSES = 1 + 1
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
     MAX_GT_INSTANCES = 100
@@ -61,7 +61,7 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "/logs/mask_rcnn_shapes.h5"
+model_path = "G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5"
 # model_path = model.find_last()
 
 
@@ -69,10 +69,10 @@ model_path = "/logs/mask_rcnn_shapes.h5"
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
 
-class_names = ['BG', 'greenstrawberry', 'strawberry']
+class_names = ['BG', 'strawberry']
 
-image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
-# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb2.png")
+# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
+image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb2.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb3.png")
 
 a = datetime.now()

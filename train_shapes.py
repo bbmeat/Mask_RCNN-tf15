@@ -33,8 +33,10 @@ ROOT_DIR = os.getcwd()
 sys.path.append(ROOT_DIR)  # 找到本地目录
 
 from mrcnn.config import Config
-from mrcnn import utils, visualize
-import mrcnn as modellib
+from mrcnn import utils
+import mrcnn.model as modellib
+from mrcnn import visualize
+from mrcnn.model import log
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -59,7 +61,7 @@ class StrawberryConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 2
+    NUM_CLASSES = 1 + 1
     IMAGE_MIN_DIM = 256
     IMAGE_MAX_DIM = 768
     MAX_GT_INSTANCES = 100
@@ -84,8 +86,8 @@ class StrawberryDataset(utils.Dataset):
             height, width:生成图像的大小。
         """
         # Add classes
-        self.add_class("shapes", 1, "greenstrawberry")
-        self.add_class("shapes", 2, "strawberry")
+        # self.add_class("shapes", 1, "greenstrawberry")
+        self.add_class("shapes", 1, "strawberry")
 
         for i in range(count):
             filestr = imglist[i].split(".")[0]
@@ -160,10 +162,10 @@ class StrawberryDataset(utils.Dataset):
         labels_form = []
 
         for i in range(len(labels)):
-            if labels[i].find("greenstrawberry") != -1:
-                # print("greenstrawberry")
-                labels_form.append("greenstrawberry")
-            elif labels[i].find("strawberry") != -1:
+            # if labels[i].find("greenstrawberry") != -1:
+            #     # print("greenstrawberry")
+            #     labels_form.append("greenstrawberry")
+            if labels[i].find("strawberry") != -1:
                 # print("strawberry")
                 labels_form.append("strawberry")
         # 生成class_id，其实际上使用class_names中映射过来的
@@ -263,7 +265,7 @@ model.keras_model.save_weights(model_weight_path)
 # ## 检测
 
 
-class InferenceConfig(config):
+class InferenceConfig(StrawberryConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     USE_MINI_MASK = False
@@ -307,7 +309,7 @@ visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'
 """
 # Compute VOC-Style mAP @ IoU=0.5
 # 运行10个图像。提高精度
-image_ids = np.random.choice(dataset_val.image_ids, 10)
+image_ids = np.random.choice(dataset_val.image_ids, 3)
 APs = []
 for image_id in image_ids:
     # Load image and ground truth data
