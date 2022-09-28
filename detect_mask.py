@@ -1,12 +1,13 @@
 import math
 import depthai as dai
 import numpy as np
-
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 import strawberry_config
 import cv2 as cv
 import random
 import colorsys
-from utility import *
+# from utility import *
 from skimage.measure import find_contours
 import mrcnn.model as modellib
 
@@ -28,13 +29,17 @@ class Mask:
         # 计算主机空间坐标所需的信息
         self.monoHFOV = np.deg2rad(calibData.getFov(dai.CameraBoardSocket.LEFT))
         self.config = InferenceConfig()
-        self.config.display()
+        # self.config.display()
         self.model = modellib.MaskRCNN(mode="inference", config=self.config,
                                        model_dir='./logs')
         self.model.load_weights("G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5", by_name=True)
         # threshold config
         self.detection_threshold = 0.5
         self.mask_threshold = 0.3
+
+        # text config
+        self.text_type = cv.FONT_HERSHEY_SIMPLEX
+        self.line_type = cv.LINE_AA
 
         self.class_name = []
         classesFile = "mscoco_labels.names";
@@ -45,18 +50,36 @@ class Mask:
         """Apply the given mask to the image.
             """
         for c in range(3):
-            image[:, :, c] = np.where(mask == 1,
-                                      image[:, :, c] *
-                                      (1 - alpha) + alpha * color[c] * 255,
-                                      image[:, :, c])
+            image[:, :, c] = np.where(mask == 1, image[:, :, c] * (1 - alpha) + alpha * color[c] * 255, image[:, :, c])
         return image
 
     def random_color(self, N, bright=True):
+        """
+            Generate random colors.
+            To get visually distinct colors, generate them in HSV space then
+            convert to RGB.
+            """
         brightness = 1.0 if bright else 0.7
         hsv = [(i / N, 1, brightness) for i in range(N)]
         colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
         random.shuffle(colors)
+        print(random.shuffle(colors))
         return colors
+
+    def back_color(self):
+
+        R = random.randrange(0, 256)
+        G = random.randrange(0, 256)
+        B = random.randrange(0, 256)
+        colors = (R, G, B)
+        return colors
+
+    def alpha_img(self, image, mask_image):
+        alpha = 1  # first
+        beta = 0.0  # second
+        gama = 0
+        result = cv.addWeighted(image, alpha, mask_image, beta, gama)
+        return result
 
     def _calc_angle(self, frame, offset):
         return math.atan(math.tan(self.monoHFOV / 2.0) * offset / (frame.shape[1] / 2.0))
@@ -73,14 +96,15 @@ class Mask:
         class_ids = r['class_ids']
         class_names = self.class_name
         scores = r['scores']
-        text = TextHelper
+        # text = TextHelper
 
         N = boxes.shape[0]
-        if not N:
-            print("\n*** No instances to display *** \n")
-        else:
-            assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
+        # if not N:
+        #     print("\n*** No instances to display *** \n")
+        # else:
+        #     assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
         colors = self.random_color(N)
+        bg_color = self.back_color()
         masked_image = image.astype(np.uint32).copy()
         for i in range(N):
             color = colors[i]
@@ -89,14 +113,13 @@ class Mask:
                 continue
             y1, x1, y2, x2 = boxes[i]
             centroid = {  # 获取ROI的质心
-                'x': int((x1 + x2) / 2),
-                'y': int((y1 + y2) / 2)
+                'x': int((x1 + x2) * 0.5),
+                'y': int((y1 + y2) * 0.5)
             }
 
             print('box', boxes)
             p1 = (int(x1), int(y1))
             p2 = (int(x2), int(y2))
-            cv.rectangle(image, p1, p2, color, 1)
 
             # area
             pre_masks = np.reshape(masks > .5, (-1, masks.shape[-1])).astype(np.float32)
@@ -110,7 +133,7 @@ class Mask:
             label = class_names[class_id]
 
             # real data
-            depth_mm = depth_frame[centroid['y'], centroid['x']]
+            depth_mm = depth_frame[centroid['y'], centroid['x']] - 12
             Wd = int(math.fabs(x1 - x2))  # roi box width
             Hd = int(math.fabs(y1 - y2))  # roi box height
             Wb = self._calc_angle(depth_frame, Wd)
@@ -130,24 +153,33 @@ class Mask:
             # Mask
 
             mask = masks[:, :, i]
-            masked_image = self.apply_mask(masked_image, mask, color)
+            mas_image = self.apply_mask(masked_image, mask, color)
+            masked_image = mas_image.astype(np.uint8)
             # Mask Polygon
             # 垫以确保遮罩接触图像边缘的适当多边形。
             padded_mask = np.zeros(
                 (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
             padded_mask[1:-1, 1:-1] = mask
             contours = find_contours(padded_mask, 0.5)
+            # print('p', contours)
             for verts in contours:
-                # Subtract the padding and flip (y, x) to (x, y)
+                # 减去填充并将(y, x)翻转到(x, y)
                 verts = np.fliplr(verts) - 1
-            masked_image = cv.fillConvexPoly(masked_image, verts, color=color)
+                # p = Polygon(verts, facecolor="none", edgecolor=color)
 
-            text.putText(masked_image, spatials['name'], (x1, y1 - 40))
-            text.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'])),
-                         (x1, y1 - 25))
-            text.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)),
-                         (x1 + 10, y1 - 30))
-            text.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)),
-                         (x1 + 10, y1 - 10))
+                mask_aera = verts.astype(int)
+                masked_image2 = cv.fillConvexPoly(masked_image, mask_aera, color=bg_color)
+                masked_image = self.alpha_img(masked_image, masked_image2)
+
+            # x1, x2, y1, y2 = int(x1), int(x2), int(y1), int(y2)
+            cv.rectangle(masked_image, p1, p2, bg_color, 2)
+            cv.putText(masked_image, spatials['name'], (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1,
+                       self.line_type)
+            cv.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1 + 10, y1 - 40),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
+            cv.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'] / 10)), (x1 + 10, y1 - 25),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
+            cv.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)), (x1 + 10, y1 - 10),
+                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
 
         return masked_image
