@@ -1,3 +1,6 @@
+import datetime
+import os
+
 import cv2 as cv
 import depthai as dai
 import tensorflow.compat.v1 as tf
@@ -5,15 +8,23 @@ from utility import *
 from detect_mask import Mask
 import numpy as np
 import random
+import time
+import sys
 
 # model_h5_path = "./logs/frozen_inference_graph_converted.pb"
-model_path = "./Model/frozen_inference_graph.pb";
-model_pbTXT = "./Model/mask_rcnn.pbtxt"
-net = cv.dnn.readNetFromTensorflow(model_path, model_pbTXT)
+
 width = 640
 height = 400
 confThreshold = 0.5  # 置信阈值
 maskThreshold = 0.3  # Mask 阈值
+
+# video setting
+
+local_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+
+video_path = "./video/strawberry_" + local_time + ".avi"
+fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 指定视频视频编解码器格式
+out = cv2.VideoWriter(video_path, fourcc, 10, (width, height), True)
 
 
 def printSystemInformation(info):
@@ -127,7 +138,9 @@ with dai.Device(pipeline) as device:
         # cv.imshow("preview", frame)
         masked_image = cv.cvtColor(result, cv.COLOR_RGB2BGR)
         cv.imshow("result", masked_image)
-        printSystemInformation(sysInfo)
+        out.write(masked_image)
+        printSystemInformation(sysInfo)  # 输出设备信息
+
         key = cv.waitKey(1)
         if key == ord('q'):
             break

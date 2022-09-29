@@ -38,6 +38,8 @@ class Mask:
         self.mask_threshold = 0.3
 
         # text config
+        self.bg_color = (0, 0, 0)
+        self.color = (255, 255, 255)
         self.text_type = cv.FONT_HERSHEY_SIMPLEX
         self.line_type = cv.LINE_AA
 
@@ -65,6 +67,10 @@ class Mask:
         random.shuffle(colors)
         print(random.shuffle(colors))
         return colors
+
+    def putText(self, frame, text, coords):
+        cv.putText(frame, text, coords, self.text_type, 0.5, self.bg_color, 3, self.line_type)
+        cv.putText(frame, text, coords, self.text_type, 0.5, self.color, 1, self.line_type)
 
     def back_color(self):
 
@@ -173,13 +179,9 @@ class Mask:
 
             # x1, x2, y1, y2 = int(x1), int(x2), int(y1), int(y2)
             cv.rectangle(masked_image, p1, p2, bg_color, 2)
-            cv.putText(masked_image, spatials['name'], (x1, y1 + 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1,
-                       self.line_type)
-            cv.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1 + 10, y1 - 40),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
-            cv.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'] / 10)), (x1 + 10, y1 - 25),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
-            cv.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)), (x1 + 10, y1 - 10),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, self.line_type)
+            self.putText(masked_image, spatials['name'], (x1, y1 + 10))
+            self.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1 + 10, y1 - 40))
+            self.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'] / 10)), (x1 + 10, y1 - 25))
+            self.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)), (x1 + 10, y1 - 10))
 
         return masked_image
