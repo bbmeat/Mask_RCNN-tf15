@@ -4,7 +4,7 @@ import os
 import cv2 as cv
 import depthai as dai
 import tensorflow.compat.v1 as tf
-from utility import *
+# from utility import *
 from detect_mask import Mask
 import numpy as np
 import random
@@ -23,8 +23,8 @@ maskThreshold = 0.3  # Mask 阈值
 local_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
 
 video_path = "./video/strawberry_" + local_time + ".avi"
-fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 指定视频视频编解码器格式
-out = cv2.VideoWriter(video_path, fourcc, 10, (width, height), True)
+fourcc = cv.VideoWriter_fourcc(*'XVID')  # 指定视频视频编解码器格式
+out = cv.VideoWriter(video_path, fourcc, 30, (width, height), True)
 
 
 def printSystemInformation(info):
