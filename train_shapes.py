@@ -69,9 +69,9 @@ class StrawberryConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 100
     POST_NMS_ROIS_INFERENCE = 250
     POST_NMS_ROIS_TRAINING = 500
-    STEPS_PER_EPOCH = 30
+    STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 5
-    LEARNING_RATE = 0.01
+    LEARNING_RATE = 0.002
 
 config = StrawberryConfig()
 config.display()
@@ -248,7 +248,7 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epoc
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=5, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=8, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存

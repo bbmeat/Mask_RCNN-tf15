@@ -24,7 +24,7 @@ local_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
 
 video_path = "./video/strawberry_" + local_time + ".avi"
 fourcc = cv.VideoWriter_fourcc(*'XVID')  # 指定视频视频编解码器格式
-out = cv.VideoWriter(video_path, fourcc, 30, (width, height), True)
+out = cv.VideoWriter(video_path, fourcc, 15, (width, height), True)
 
 
 def printSystemInformation(info):
@@ -61,7 +61,7 @@ def createPipeline():
     # 定义灰度相机和
     monoLeft = pipeline.createMonoCamera()
     monoRight = pipeline.createMonoCamera()
-    stero = pipeline.createStereoDepth()
+    stero = pipeline.create(dai.node.StereoDepth)
     spatialLocationCalculator = pipeline.createSpatialLocationCalculator()
 
     lrcheck = True
@@ -80,11 +80,25 @@ def createPipeline():
     xinSpatialConfig.setStreamName("config")
     linkOut.setStreamName("sysinfo")
 
-    # sedth 节点设置
+    # depth 节点设置
     stero.initialConfig.setConfidenceThreshold(255)
     stero.setDepthAlign(dai.CameraBoardSocket.RGB)
     stero.setLeftRightCheck(lrcheck)
     stero.setSubpixel(subpixel)
+
+    # depth 后处理
+    config = stero.initialConfig.get()
+    config.postProcessing.speckleFilter.enable = False  # 是否启用或禁用过滤器。
+    config.postProcessing.speckleFilter.speckleRange = 50  # 散斑搜索范围。
+    config.postProcessing.temporalFilter.enable = True
+    config.postProcessing.spatialFilter.enable = True
+    config.postProcessing.spatialFilter.holeFillingRadius = 2
+    config.postProcessing.spatialFilter.numIterations = 1
+    config.postProcessing.thresholdFilter.minRange = 400
+    config.postProcessing.thresholdFilter.maxRange = 15000
+    config.postProcessing.decimationFilter.decimationFactor = 1
+    stero.initialConfig.set(config)
+
 
     # 连接左右灰度x深度
     monoLeft.out.link(stero.left)
@@ -139,7 +153,7 @@ with dai.Device(pipeline) as device:
         masked_image = cv.cvtColor(result, cv.COLOR_RGB2BGR)
         cv.imshow("result", masked_image)
         out.write(masked_image)
-        printSystemInformation(sysInfo)  # 输出设备信息
+        # printSystemInformation(sysInfo)  # 输出设备信息
 
         key = cv.waitKey(1)
         if key == ord('q'):

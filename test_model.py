@@ -71,8 +71,8 @@ model.load_weights(model_path, by_name=True)
 
 class_names = ['BG', 'strawberry']
 
-# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
-image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb2.png")
+image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb.png")
+# image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb_12.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb3.png")
 
 a = datetime.now()

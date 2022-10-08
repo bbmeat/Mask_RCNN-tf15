@@ -81,14 +81,22 @@ class Mask:
         return colors
 
     def alpha_img(self, image, mask_image):
-        alpha = 1  # first
-        beta = 0.0  # second
+        alpha = 0.3  # first
+        beta = 0.7  # second
         gama = 0
         result = cv.addWeighted(image, alpha, mask_image, beta, gama)
         return result
 
     def _calc_angle(self, frame, offset):
         return math.atan(math.tan(self.monoHFOV / 2.0) * offset / (frame.shape[1] / 2.0))
+
+    def calc_volume(self, mask, height, width):
+        area = mask / 100
+        h = height / 10
+        w = width / 10
+        vs = ((0.5 * w) ** 2) * h * math.pi
+        # vs = format(v, '.1f')
+        return vs
 
     def detect_with_h5(self, bgr_frame, depth_frame):
 
@@ -151,10 +159,14 @@ class Mask:
             spatials = {
                 'z': depth_mm,
                 'height': depth_mm * math.tan(Hb),
+                'width': depth_mm *math.tan(Wb),
                 'area': mask_area,
                 'score': score,
                 'name': label
             }
+            # volume
+
+            v = self.calc_volume(spatials['area'], spatials['height'], spatials['width'])
 
             # Mask
 
@@ -180,8 +192,9 @@ class Mask:
             # x1, x2, y1, y2 = int(x1), int(x2), int(y1), int(y2)
             cv.rectangle(masked_image, p1, p2, bg_color, 2)
             self.putText(masked_image, spatials['name'], (x1, y1 + 10))
-            self.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1 + 10, y1 - 40))
-            self.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'] / 10)), (x1 + 10, y1 - 25))
-            self.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)), (x1 + 10, y1 - 10))
+            self.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1 + 10, y1 - 55))
+            self.putText(masked_image, "Height: " + ("{:.1f}cm".format(spatials['height'] / 10)), (x1 + 10, y1 - 40))
+            self.putText(masked_image, "Z: " + ("{:.1f}cm".format(spatials['z'] / 10)), (x1 + 10, y1 - 25))
+            self.putText(masked_image, "Vo: " + ("{:.1f}cm^3".format(v)), (x1 + 10, y1 - 10))
 
         return masked_image

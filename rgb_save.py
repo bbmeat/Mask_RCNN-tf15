@@ -11,13 +11,10 @@ camRgb = pipeline.create(dai.node.ColorCamera)
 xoutRgb = pipeline.create(dai.node.XLinkOut)
 
 xoutRgb.setStreamName("rgb")
-ctrl = dai.CameraControl()
 
 # Properties
 camRgb.setPreviewSize(640, 400)
 camRgb.setInterleaved(False)
-ctrl.setManualExposure(19000, 850)
-ctrl.setManualWhiteBalance(3600)
 camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
 
 # Linking
