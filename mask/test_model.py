@@ -5,7 +5,7 @@ import sys
 import skimage.io
 import matplotlib.pyplot as plt
 
-from mrcnn.config import Config
+from mask.mrcnn.config import Config
 from datetime import datetime
 
 # Root directory of the project
@@ -13,8 +13,8 @@ from datetime import datetime
 ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-import mrcnn.model as modellib
-from mrcnn import visualize
+import mask.mrcnn.model as modellib
+from mask.mrcnn import visualize
 
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 IMAGE_DIR = os.path.join(ROOT_DIR, "train_data/val")
@@ -61,7 +61,7 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5"
+model_path = "/mask/logs/mask_rcnn_shapes.h5"
 # model_path = model.find_last()
 
 

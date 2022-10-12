@@ -1,15 +1,13 @@
 import math
 import depthai as dai
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
 import strawberry_config
 import cv2 as cv
 import random
 import colorsys
 # from utility import *
 from skimage.measure import find_contours
-import mrcnn.model as modellib
+import mask.mrcnn.model as modellib
 
 config = strawberry_config.StrawberryConfig()
 
@@ -31,7 +29,7 @@ class Mask:
         self.config = InferenceConfig()
         # self.config.display()
         self.model = modellib.MaskRCNN(mode="inference", config=self.config,
-                                       model_dir='./logs')
+                                       model_dir='logs')
         self.model.load_weights("G:/Python/Mask_RCNN-tf15/logs/mask_rcnn_shapes.h5", by_name=True)
         # threshold config
         self.detection_threshold = 0.5

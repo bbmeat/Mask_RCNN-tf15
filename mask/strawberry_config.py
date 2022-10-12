@@ -1,4 +1,4 @@
-from mrcnn.config import Config
+from mask.mrcnn.config import Config
 
 class StrawberryConfig(Config):
     """

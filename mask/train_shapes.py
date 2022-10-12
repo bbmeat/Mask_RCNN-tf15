@@ -32,11 +32,10 @@ ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # 找到本地目录
 
-from mrcnn.config import Config
-from mrcnn import utils
-import mrcnn.model as modellib
-from mrcnn import visualize
-from mrcnn.model import log
+from mask.mrcnn.config import Config
+from mask.mrcnn import utils
+import mask.mrcnn.model as modellib
+from mask.mrcnn import visualize
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -248,7 +247,7 @@ model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epoc
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=8, layers="all")
+model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=20, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
@@ -272,7 +271,7 @@ class InferenceConfig(StrawberryConfig):
 
 
 inference_config = InferenceConfig()
-"""
+
 # Recreate the model in inference mode
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
@@ -284,7 +283,7 @@ model_path = model.find_last()
 # Load trained weights
 print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
-
+"""
 
 # Test on a random image
 image_id = random.choice(dataset_val.image_ids)
