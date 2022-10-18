@@ -1,6 +1,6 @@
 import datetime
 import os
-
+import xlwt
 import cv2 as cv
 import depthai as dai
 import tensorflow.compat.v1 as tf
@@ -8,6 +8,7 @@ import tensorflow.compat.v1 as tf
 from detect_mask import Mask
 import numpy as np
 import random
+
 import time
 import sys
 
@@ -21,10 +22,22 @@ maskThreshold = 0.3  # Mask 阈值
 # video setting
 
 local_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+file_path = "./video/strawberry_" + local_time
 
-video_path = "./video/strawberry_" + local_time + ".avi"
-fourcc = cv.VideoWriter_fourcc(*'XVID')  # 指定视频视频编解码器格式
-out = cv.VideoWriter(video_path, fourcc, 15, (width, height), True)
+folder = os.path.exists(file_path)
+if not folder:  # 判断是否存在文件夹如果不存在则创建为文件夹
+    os.makedirs(file_path)  # makedirs 创建文件时如果路径不存在会创建这个路径
+    print("---  new folder...  ---")
+    print("---  OK  ---")
+else:
+    print("---  There is this folder!  ---")
+
+excel_path = file_path + "/strawberry_result.xls"
+video_path = file_path + "/strawberry_result.mp4"
+rvideo_path = file_path + "/strawberry_rgb.mp4"
+fourcc = cv.VideoWriter_fourcc(*'mp4v')  # 指定视频视频编解码器格式
+out = cv.VideoWriter(video_path, fourcc, 10, (width, height), True)
+rout = cv.VideoWriter(rvideo_path, fourcc, 10, (width, height), True)
 
 
 def printSystemInformation(info):
@@ -59,25 +72,26 @@ def createPipeline():
     sysLog = pipeline.create(dai.node.SystemLogger)
 
     # 定义灰度相机和
-    monoLeft = pipeline.createMonoCamera()
-    monoRight = pipeline.createMonoCamera()
+    monoLeft = pipeline.create(dai.node.MonoCamera)
+    monoRight = pipeline.create(dai.node.MonoCamera)
     stero = pipeline.create(dai.node.StereoDepth)
-    spatialLocationCalculator = pipeline.createSpatialLocationCalculator()
 
     lrcheck = True
     subpixel = True
 
+    monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+    monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+    monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+    monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+
     # 输出队列
     xoutPreview = pipeline.createXLinkOut()
     xoutDepth = pipeline.createXLinkOut()
-    xoutSpatialData = pipeline.createXLinkOut()
-    xinSpatialConfig = pipeline.createXLinkIn()
     linkOut = pipeline.create(dai.node.XLinkOut)
 
     xoutPreview.setStreamName("preview")
     xoutDepth.setStreamName("depth")
-    xoutSpatialData.setStreamName("spatialData")
-    xinSpatialConfig.setStreamName("config")
+
     linkOut.setStreamName("sysinfo")
 
     # depth 节点设置
@@ -85,6 +99,7 @@ def createPipeline():
     stero.setDepthAlign(dai.CameraBoardSocket.RGB)
     stero.setLeftRightCheck(lrcheck)
     stero.setSubpixel(subpixel)
+
 
     # depth 后处理
     config = stero.initialConfig.get()
@@ -105,24 +120,11 @@ def createPipeline():
     monoRight.out.link(stero.right)
 
     # 空间计算
-    spatialLocationCalculator.passthroughDepth.link(xoutDepth.input)
-    stero.depth.link(spatialLocationCalculator.inputDepth)
+    stero.depth.link(xoutDepth.input)
 
     # bgr 输出
     camRgb.preview.link(xoutPreview.input)
     sysLog.setRate(1)
-
-    topLeft = dai.Point2f(0.4, 0.4)
-    bottomRight = dai.Point2f(0.8, 0.8)
-
-    spatialLocationCalculator.inputConfig.setWaitForMessage(False)
-    config = dai.SpatialLocationCalculatorConfigData()
-    config.depthThresholds.lowerThreshold = 100
-    config.depthThresholds.upperThreshold = 10000
-    config.roi = dai.Rect(topLeft, bottomRight)
-    spatialLocationCalculator.initialConfig.addROI(config)
-    spatialLocationCalculator.out.link(xoutSpatialData.input)
-    xinSpatialConfig.out.link(spatialLocationCalculator.inputConfig)
     sysLog.out.link(linkOut.input)
 
     return pipeline
@@ -132,8 +134,6 @@ pipeline = createPipeline()
 with dai.Device(pipeline) as device:
     rgb = device.getOutputQueue('preview', maxSize=1, blocking=False)
     depthQueue = device.getOutputQueue(name="depth", maxSize=1, blocking=False)
-    spatialCalcQueue = device.getOutputQueue(name="spatialData", maxSize=1, blocking=False)
-    spatialCalcConfigInQueue = device.getInputQueue("config")
     # text = TextHelper()
     detect_mask = Mask(device)
 
@@ -152,8 +152,10 @@ with dai.Device(pipeline) as device:
         # cv.imshow("preview", frame)
         masked_image = cv.cvtColor(result, cv.COLOR_RGB2BGR)
         cv.imshow("result", masked_image)
+        cv.imshow("rgb", frame)
         out.write(masked_image)
-        # printSystemInformation(sysInfo)  # 输出设备信息
+        rout.write(frame)
+
 
         key = cv.waitKey(1)
         if key == ord('q'):

@@ -66,6 +66,7 @@ def random_colors(N, bright=True):
     hsv = [(i / N, 1, brightness) for i in range(N)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     random.shuffle(colors)
+    print('color', colors)
     return colors
 
 
@@ -124,7 +125,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     masked_image = image.astype(np.uint32).copy()
     for i in range(N):
         color = colors[i]
-
+        print('co', color)
         # Bounding box
         if not np.any(boxes[i]):
             # 跳过这个实例。没有bbox。可能在图像裁剪中丢失。
