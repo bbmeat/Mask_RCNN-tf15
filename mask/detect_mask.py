@@ -48,6 +48,7 @@ class Mask:
         with open(classesFile, 'rt') as f:
             self.class_name = f.read().rstrip('\n').split('\n')
 
+
     def apply_mask(self, image, mask, color, alpha=0):
         """Apply the given mask to the image.
             """
@@ -55,12 +56,9 @@ class Mask:
             image[:, :, c] = np.where(mask == 1, image[:, :, c] * (1 - alpha) + alpha * color[c] * 255, image[:, :, c])
         return image
 
+
     def random_color(self, N, bright=True):
-        """
-            Generate random colors.
-            To get visually distinct colors, generate them in HSV space then
-            convert to RGB.
-            """
+
         brightness = 1.0 if bright else 0.7
         hsv = [(i / N, 1, brightness) for i in range(N)]
         colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
@@ -79,24 +77,17 @@ class Mask:
         colors = (R, G, B)
         return colors
 
-    def hvs_to_r(self, N, bright=True, alpha = 0.7):
+    def hvs_to_r(self, N, bright=True, alpha=0.7):
         brightness = 1.0 if bright else 0.7
         hsv = [(i / N, 1, brightness) for i in range(N)]
         colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv))
         colors = list(
-            map(lambda x: (int(x[0] * 255 * alpha), int(x[1] * 255* alpha), int(x[2] * 255 * alpha)),
+            map(lambda x: (int(x[0] * 255 * alpha), int(x[1] * 255 * alpha), int(x[2] * 255 * alpha)),
                 colors))
         random.seed(10101)  # Fixed seed for consistent colors across runs.
         random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
         random.seed(None)  # Reset seed to default.
         return colors
-
-    def alpha_img(self, image, mask_image):
-        alpha = 0.4  # first
-        beta = 1 - alpha  # second
-        gama = 0
-        result = cv.addWeighted(image, alpha, mask_image, beta, gama)
-        return result
 
     def _calc_angle(self, frame, offset):
         return math.atan(math.tan(self.monoHFOV / 2.0) * offset / (frame.shape[1] / 2.0))
@@ -145,13 +136,13 @@ class Mask:
         else:
             assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
         print('n', N)
-        colors = self.random_color(N)
+        # colors = self.random_color(N)
         masked_image = image.astype(np.uint32).copy()
         bg_colors = self.hvs_to_r(N)
         for i in range(N):
-            color = colors[i]
+            # color = colors[i]
             bg_color = bg_colors[i]
-            print('co', color)
+            # print('co', color)
             print('co2', bg_color)
             if not np.any(boxes[i]):
                 # 跳过这个实例。没有bbox。可能在图像裁剪中丢失了。
@@ -211,8 +202,7 @@ class Mask:
 
             mask = masks[:, :, i]
             # masked_image = self.apply_mask(masked_image, mask, color)
-            _image = masked_image.astype(np.uint8)
-            _yimg = image.astype(np.uint8)
+            masked_image = masked_image.astype(np.uint8)
             # Mask Polygon
             # 垫以确保遮罩接触图像边缘的适当多边形。
             padded_mask = np.zeros(
@@ -227,11 +217,8 @@ class Mask:
                 # p = Polygon(verts, facecolor="none", edgecolor=color)
 
                 mask_aera = verts.astype(int)
-                masked_image = cv.fillConvexPoly(_image, mask_aera, color=bg_color)
-                # mask_image = self.alpha_img(_yimg, masked_image)
-            # cv.imshow('img', _image)
+                masked_image = cv.fillConvexPoly(masked_image, mask_aera, color=bg_color)
 
-            # x1, x2, y1, y2 = int(x1), int(x2), int(y1), int(y2)
             cv.rectangle(masked_image, p1, p2, bg_color, 2)
             self.putText(masked_image, spatials['name'], (x1, y1 - 10))
             self.putText(masked_image, "area: " + ("{:.1f}cm^2".format(spatials['area'] / 100)), (x1, y1 - 70))

@@ -1,16 +1,9 @@
-import datetime
 import os
-import xlwt
 import cv2 as cv
 import depthai as dai
-import tensorflow.compat.v1 as tf
-# from utility import *
 from detect_mask import Mask
-import numpy as np
-import random
-
 import time
-import sys
+
 
 # model_h5_path = "./logs/frozen_inference_graph_converted.pb"
 
@@ -136,7 +129,6 @@ with dai.Device(pipeline) as device:
     depthQueue = device.getOutputQueue(name="depth", maxSize=1, blocking=False)
     # text = TextHelper()
     detect_mask = Mask(device)
-
     qSysInfo = device.getOutputQueue(name="sysinfo", maxSize=1, blocking=False)
 
     while True:
