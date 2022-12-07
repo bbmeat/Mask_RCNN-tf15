@@ -36,7 +36,7 @@ depth.setExtendedDisparity(extended_disparity)
 depth.setSubpixel(subpixel)
 
 config = depth.initialConfig.get()
-config.postProcessing.speckleFilter.enable = False  # 是否启用或禁用过滤器。
+config.postProcessing.speckleFilter.enable = True  # 是否启用或禁用过滤器。
 config.postProcessing.speckleFilter.speckleRange = 50  # 散斑搜索范围。
 config.postProcessing.temporalFilter.enable = True
 config.postProcessing.spatialFilter.enable = True
