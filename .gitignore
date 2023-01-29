@@ -67,3 +67,16 @@ mask-rcnn/
 train_data/
 
 video/
+
+
+Ransac_Process.py
+
+rasnc.py
+
+rgb_save.py
+
+rgb.py
+
+mask_fix.py
+
+mask_set.py
