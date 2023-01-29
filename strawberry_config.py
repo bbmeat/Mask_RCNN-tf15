@@ -1,4 +1,4 @@
-from mask.mrcnn.config import Config
+from mrcnn.config import Config
 
 class StrawberryConfig(Config):
     """
@@ -11,9 +11,9 @@ class StrawberryConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 1
+    NUM_CLASSES = 1 + 2
     IMAGE_MIN_DIM = 256
-    IMAGE_MAX_DIM = 768
+    IMAGE_MAX_DIM = 1280
     MAX_GT_INSTANCES = 100
     RPN_ANCHOR_SCALES = (8 * 7, 16 * 7, 32 * 7, 64 * 7, 128 * 7)  # anchor side in pixels
     TRAIN_ROIS_PER_IMAGE = 100

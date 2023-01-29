@@ -25,7 +25,7 @@ ROOT_DIR = os.path.abspath("../mask-rcnn/")
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-from mask.mrcnn import utils
+from mrcnn import utils
 
 
 ############################################################
@@ -115,7 +115,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     # Generate random colors
     colors = colors or random_colors(N)
 
-    # Show area outside image boundaries.
+    # 显示图像边界以外的区域.
     height, width = image.shape[:2]
     ax.set_ylim(height + 10, -10)
     ax.set_xlim(-10, width + 10)
@@ -133,7 +133,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         y1, x1, y2, x2 = boxes[i]
         if show_bbox:
             p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
-                                alpha=0.7, linestyle="dashed",
+                                alpha=0.7, linestyle="solid",
                                 edgecolor=color, facecolor='none')
             ax.add_patch(p)
 
@@ -151,8 +151,8 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             caption = "{} {:.3f}\narea:{:.1f}".format(label, score, area) if score else label
         else:
             caption = captions[i]
-        ax.text(x1, y1 + 8, caption,
-                color='w', size=11, backgroundcolor="none")
+        # ax.text(x1, y1 + 8, caption,
+        #         color='w', size=11, backgroundcolor="none")
 
 
         # Mask

@@ -23,7 +23,7 @@ import keras.layers as KL
 import keras.engine as KE
 import keras.models as KM
 
-from mask.mrcnn import utils
+from mrcnn import utils
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
 from distutils.version import LooseVersion
@@ -52,26 +52,24 @@ def log(text, array=None):
 
 
 class BatchNorm(KL.BatchNormalization):
-    """Extends the Keras BatchNormalization class to allow a central place
-    to make changes if needed.
+    """扩展Keras BatchNormalization类，以便在需要时允许一个中心位置进行更改。
 
-    Batch normalization has a negative effect on training if batches are small
-    so this layer is often frozen (via setting in Config class) and functions
-    as linear layer.
+        如果批处理数量较少，批处理归一化对训练有负面影响，
+        因此该层经常被冻结(通过在Config类中设置)，并作为线性层发挥作用。
     """
 
     def call(self, inputs, training=None):
         """
         Note about training values:
-            None: Train BN layers. This is the normal mode
-            False: Freeze BN layers. Good when batch size is small
-            True: (don't use). Set layer in training mode even when making inferences
+            None: 训练BN层。这是正常模式
+            False: 冻结BN层。当批量小的时候很好
+            True: (不使用)。将图层设置为训练模式，即使进行推理
         """
         return super(self.__class__, self).call(inputs, training=training)
 
 
 def compute_backbone_shapes(config, image_shape):
-    """Computes the width and height of each stage of the backbone network.
+    """计算骨干网各阶段的宽度和高度。
 
     Returns:
         [N, (height, width)]. Where N is the number of stages
@@ -2063,7 +2061,7 @@ class MaskRCNN():
 
         # Add multi-GPU support.
         if config.GPU_COUNT > 1:
-            from mask.mrcnn.parallel_model import ParallelModel
+            from mrcnn.parallel_model import ParallelModel
             model = ParallelModel(model, config.GPU_COUNT)
 
         return model
@@ -2471,7 +2469,7 @@ class MaskRCNN():
         # 将蒙版大小调整为原始图像大小并设置边界阈值。
         full_masks = []
         for i in range(N):
-            # Convert neural network mask to full size mask
+            # 将神经网络掩码转换为全尺寸掩码
             full_mask = utils.unmold_mask(masks[i], boxes[i], original_image_shape)
             full_masks.append(full_mask)
         full_masks = np.stack(full_masks, axis=-1) \

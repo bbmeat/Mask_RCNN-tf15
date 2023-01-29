@@ -5,7 +5,7 @@ import sys
 import skimage.io
 import matplotlib.pyplot as plt
 
-from mask.mrcnn.config import Config
+from mrcnn.config import Config
 from datetime import datetime
 
 # Root directory of the project
@@ -13,8 +13,8 @@ from datetime import datetime
 ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-import mask.mrcnn.model as modellib
-from mask.mrcnn import visualize
+import mrcnn.model as modellib
+from mrcnn import visualize
 
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 IMAGE_DIR = os.path.join(ROOT_DIR, "train_data/val")
@@ -61,7 +61,7 @@ inference_config = InferenceConfig()
 
 model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
 
-model_path = "./logs/mask_rcnn_shapes.h5"
+model_path = "logs/mask_rcnn_shapes.h5"
 # model_path = model.find_last()
 
 
@@ -70,8 +70,9 @@ print("Loading weights from ", model_path)
 model.load_weights(model_path, by_name=True)
 
 class_names = ['BG', 'strawberry']
-
-image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/mask/train_data/val/rgb2.png")
+image = skimage.io.imread("./train_data/val/rgb-00008-16160357257280.jpeg")
+# image = skimage.io.imread("./train_data/val/000000000002.png")
+# image = skimage.io.imread("./train_data/val/rgb3.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb_12.png")
 # image = skimage.io.imread("G:/Python/Mask_RCNN-tf15/train_data/val/rgb3.png")
 
@@ -85,5 +86,5 @@ print("shijian", (b - a).seconds)
 r = results[0]
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
 print('roi', r['rois'])
-area1 = visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
+# area1 = visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figsize=(8, 8))
 

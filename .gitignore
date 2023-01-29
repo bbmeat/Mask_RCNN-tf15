@@ -56,3 +56,14 @@ pip-delete-this-directory.txt
 .venv
 venv/
 ENV/
+upgrade.ipynb
+
+start.sh
+img_result/
+
+
+mask-rcnn/
+
+train_data/
+
+video/

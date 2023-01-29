@@ -32,10 +32,10 @@ ROOT_DIR = os.getcwd()
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # 找到本地目录
 
-from mask.mrcnn.config import Config
-from mask.mrcnn import utils
-import mask.mrcnn.model as modellib
-from mask.mrcnn import visualize
+from mrcnn.config import Config
+from mrcnn import utils
+import mrcnn.model as modellib
+from mrcnn import visualize
 
 # get_ipython().run_line_magic('matplotlib', 'inline')
 
@@ -205,7 +205,7 @@ dataset_val.load_shapes(3, img_floder, mask_floder, imglist, dataset_root_path)
 dataset_val.prepare()
 
 # 加载和显示随机样本
-image_ids = np.random.choice(dataset_train.image_ids, 13)
+image_ids = np.random.choice(dataset_train.image_ids, 2)
 for image_id in image_ids:
     image = dataset_train.load_image(image_id)
     mask, class_ids = dataset_train.load_mask(image_id)
@@ -243,17 +243,17 @@ elif init_with == "last":
 # Train the head branches
 # 传递 layers="heads" 冻结除头部层以外的所有层。
 # 您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
+# model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=5, layers='heads')
 
 # 微调所有图层
 # 传递层=“all”训练所有层。您还可以通过一个正则表达式来根据名称模式选择要训练的层。
-model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=20, layers="all")
+# model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=20, layers="all")
 
 # Save weights
 # 通常不需要，因为回调会在每个epoch之后保存
 # 取消注释以手动保存
 model_weight_path = os.path.join(MODEL_DIR, "mask_rcnn_shapes.h5")
-model.keras_model.save_weights(model_weight_path)
+# model.keras_model.save_weights(model_weight_path)
 
 # json_str = model.keras_model.to_json()
 # with open("model.json", "w") as json_file:
@@ -277,8 +277,8 @@ model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=M
 
 # Get path to saved weights
 # 要么设置一个特定的路径，要么找到最后训练的权重
-# model_path = os.path.join(ROOT_DIR, ".h5 file name here")
-model_path = model.find_last()
+model_path = os.path.join(ROOT_DIR, "logs/mask_rcnn_shapes.h5")
+# model_path = model.find_last()
 
 # Load trained weights
 print("Loading weights from ", model_path)
@@ -306,23 +306,85 @@ visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'
 # ## 评估
 
 """
+def text_save(filename, data):  # filename为写入CSV文件的路径，data为要写入数据列表.
+    file = open(filename, 'a')
+    for i in range(len(data)):
+        s = str(data[i]).replace('[', '').replace(']', '')  # 去除[],这两行按数据不同，可以选择
+        s = s.replace("'", '').replace(',', '') + '\n'  # 去除单引号，逗号，每行末尾追加换行符
+        file.write(s)
+    file.close()
+    print("保存txt文件成功")
+
 # Compute VOC-Style mAP @ IoU=0.5
 # 运行10个图像。提高精度
-image_ids = np.random.choice(dataset_val.image_ids, 3)
+image_ids = np.random.choice(dataset_val.image_ids, 111)
 APs = []
+
+count1 = 0
+# for image_id in image_ids:
+#     # Load image and ground truth data
+#     image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(dataset_val, inference_config,
+#                                                                               image_id)
+#     molded_images = np.expand_dims(modellib.mold_image(image, inference_config), 0)
+#     # Run object detection
+#     results = model.detect([image], verbose=0)
+#     r = results[0]
+#     # Compute AP
+#     AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id, gt_mask,
+#                                                          r["rois"], r["class_ids"], r["scores"], r['masks'])
+#     APs.append(AP)
+#
+# print("mAP: ", np.mean(APs))
+
 for image_id in image_ids:
-    # Load image and ground truth data
-    image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(dataset_val, inference_config,
-                                                                              image_id)
+    # 加载测试集的ground truth
+    image, image_meta, gt_class_id, gt_bbox, gt_mask = \
+        modellib.load_image_gt(dataset_val, inference_config,
+                               image_id)
+    # 将所有ground truth载入并保存
+    if count1 == 0:
+        save_box, save_class, save_mask = gt_bbox, gt_class_id, gt_mask
+    else:
+        save_box = np.concatenate((save_box, gt_bbox), axis=0)
+        save_class = np.concatenate((save_class, gt_class_id), axis=0)
+        save_mask = np.concatenate((save_mask, gt_mask), axis=2)
+
     molded_images = np.expand_dims(modellib.mold_image(image, inference_config), 0)
-    # Run object detection
+
+    # 启动检测
     results = model.detect([image], verbose=0)
+    print(type(results))
     r = results[0]
-    # Compute AP
-    AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id, gt_mask,
-                                                         r["rois"], r["class_ids"], r["scores"], r['masks'])
-    APs.append(AP)
 
-print("mAP: ", np.mean(APs))
+    # 将所有检测结果保存
+    if count1 == 0:
+        save_roi, save_id, save_score, save_m = r["rois"], r["class_ids"], r["scores"], r['masks']
 
+    else:
+        save_roi = np.concatenate((save_roi, r["rois"]), axis=0)
+        save_id = np.concatenate((save_id, r["class_ids"]), axis=0)
+        save_score = np.concatenate((save_score, r["scores"]), axis=0)
+        save_m = np.concatenate((save_m, r['masks']), axis=2)
 
+    count1 += 1
+    # print(save_box.shape,save_class.shape,save_mask.shape,save_roi.shape,save_id.shape,save_score.shape,save_m.shape)
+# 计算AP, precision, recall
+
+AP, precisions, recalls, overlaps = \
+    utils.compute_ap(save_box, save_class, save_mask,
+                     save_roi, save_id, save_score, save_m)
+
+print("AP: ", AP)
+print("mAP: ", np.mean(AP))
+
+# 绘制PR曲线
+plt.plot(recalls, precisions, 'b', label='PR')
+plt.title('precision-recall curve')
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.legend()
+plt.show()
+
+# 保存precision, recall信息用于后续绘制图像
+text_save('Kpreci.txt', precisions)
+text_save('Krecall.txt', recalls)
